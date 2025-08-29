@@ -1349,6 +1349,28 @@ If you change dependencies or project metadata, regenerate the lockfile:
 uv sync
 ```
 
+### Smoke tests
+
+A tiny unittest-based smoke test suite is included to sanity-check the environment and a couple of tools:
+
+- `python_version` returns the running Python version and executable path.
+- `osxphotos_health` reports whether the `osxphotos` CLI is discoverable and, if so, where.
+
+Run the tests with uv:
+
+```bash
+# Ensure a compatible Python is pinned (project requires >=3.11)
+uv python pin 3.12
+
+# Run unittest discovery
+uv run python -m unittest discover -s tests -p 'test*.py' -q
+```
+
+Notes:
+
+- The tests don’t require `osxphotos` to be installed; they only report discovery status. If `osxphotos` is not found, the test still passes as long as `osxphotos_health` returns the expected JSON shape.
+- The tests add `src/` to `sys.path` so they work from a local checkout without installation.
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.

@@ -14,9 +14,9 @@ license = { file = "LICENSE" }
 name = "Marco Massari Calderone"
 email = "marco@marcocmc.com"
 
-[[project.urls]]
-name = "MCP Osxphotos"
-url = "https://github.com/marcocmc/mcp-osxphotos"
+[project.urls]
+Homepage = "https://github.com/marcocmc/mcp-osxphotos"
+Repository = "https://github.com/marcocmc/mcp-osxphotos.git"
 
 [project.scripts]
 mcp-osxphotos = "mcp_osxphotos.__main__:main"
