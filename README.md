@@ -1,4 +1,4 @@
-# osxphotos_mcp
+# mcp-osxphotos
 
 <!-- markdownlint-disable MD013 MD004 MD007 MD029 MD030 MD032 -->
 
@@ -7,12 +7,13 @@ An MCP server for interacting with the `osxphotos` CLI tool.
 This project provides Model Context Protocol tools around the open source project [osxphotos](https://github.com/RhetTbull/osxphotos).
 
 This server provides a way for AI tools that support the Model Context Protocol (MCP) to interact with your Apple Photos library through the powerful `osxphotos` command-line tool.
- 
+
 ## Quick Index
 
 - [Prerequisites](#prerequisites)
 - [Installation and Setup](#installation-and-setup)
 - [Usage](#usage)
+- [Using uvx (alternative)](#using-uvx-alternative)
 - [Testing](#testing)
 - [Developer Documentation](#developer-documentation)
     - [Available Tools](#available-tools)
@@ -74,7 +75,7 @@ Python version: This server targets Python >= 3.12,<3.14. The setup instructions
     ```bash
     # (If you have the project files, you can skip this step)
     git clone <repository_url>
-    cd osxphotos_mcp
+    cd mcp-osxphotos
     ```
 
 2. **Create a virtual environment and install dependencies:**
@@ -99,6 +100,19 @@ uv run mcp dev main.py
 
 This will start the server in development mode.
 
+## Using uvx (alternative)
+
+If you prefer not to install the MCP CLI into your virtual environment, you can launch the server using uvx. This downloads and runs the `mcp` CLI in an isolated environment (cached by uv) and points it at your local `main.py`.
+
+```bash
+uvx mcp dev main.py
+```
+
+Notes:
+
+- With `uvx`, you don’t need to install `mcp[cli]` into your venv. The `mcp` tool will be resolved automatically.
+- For GUI clients (Claude, Continue, Zed, etc.), you can set the command to `uvx` and remove `run` from the args (see examples below).
+
 ## Testing
 
 Once the server is running, you can test it using the MCP Inspector, a web-based interface for interacting with the server's tools.
@@ -121,9 +135,25 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` and add a
 ```json
 {
     "mcpServers": {
-        "osxphotos-mcp": {
+        "mcp-osxphotos": {
             "command": "uv",
             "args": ["run", "mcp", "dev", "/absolute/path/to/main.py"],
+            "env": {
+                "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos"
+            }
+        }
+    }
+}
+```
+
+Tip: You can also use uvx instead of a local installation of `mcp`:
+
+```json
+{
+    "mcpServers": {
+        "mcp-osxphotos": {
+            "command": "uvx",
+            "args": ["mcp", "dev", "/absolute/path/to/main.py"],
             "env": {
                 "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos"
             }
@@ -141,9 +171,25 @@ Create or edit `~/.continue/config.json` (user-level) or `.continue/config.json`
 ```json
 {
     "mcpServers": {
-        "osxphotos-mcp": {
+        "mcp-osxphotos": {
             "command": "uv",
             "args": ["run", "mcp", "dev", "/absolute/path/to/main.py"],
+            "env": {
+                "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos"
+            }
+        }
+    }
+}
+```
+
+Or with uvx:
+
+```json
+{
+    "mcpServers": {
+        "mcp-osxphotos": {
+            "command": "uvx",
+            "args": ["mcp", "dev", "/absolute/path/to/main.py"],
             "env": {
                 "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos"
             }
@@ -163,9 +209,26 @@ Add a server entry to your Zed settings (e.g., `~/.config/zed/settings.json`). I
     "mcp": {
         "servers": [
             {
-                "name": "osxphotos-mcp",
+                "name": "mcp-osxphotos",
                 "binary": "uv",
                 "args": ["run", "mcp", "dev", "/absolute/path/to/main.py"],
+                "env": { "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos" }
+            }
+        ]
+    }
+}
+```
+
+Or with uvx:
+
+```json
+{
+    "mcp": {
+        "servers": [
+            {
+                "name": "mcp-osxphotos",
+                "binary": "uvx",
+                "args": ["mcp", "dev", "/absolute/path/to/main.py"],
                 "env": { "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos" }
             }
         ]
@@ -182,9 +245,23 @@ If your `gemini-cli` supports MCP servers via a config file, the entry typically
 ```json
 {
     "mcpServers": {
-        "osxphotos-mcp": {
+        "mcp-osxphotos": {
             "command": "uv",
             "args": ["run", "mcp", "dev", "/absolute/path/to/main.py"],
+            "env": { "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos" }
+        }
+    }
+}
+```
+
+Or with uvx:
+
+```json
+{
+    "mcpServers": {
+        "mcp-osxphotos": {
+            "command": "uvx",
+            "args": ["mcp", "dev", "/absolute/path/to/main.py"],
             "env": { "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos" }
         }
     }

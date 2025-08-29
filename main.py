@@ -6,7 +6,7 @@ import json
 from mcp.server.fastmcp import FastMCP
 from typing import List, Optional, Literal
 
-mcp = FastMCP("osxphotos_mcp")
+mcp = FastMCP("mcp-osxphotos")
 
 _resolved_osxphotos_path: Optional[str] = None
 
