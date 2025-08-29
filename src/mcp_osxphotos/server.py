@@ -5,7 +5,12 @@ import subprocess
 import json
 from typing import List, Optional, Literal
 
-from dotenv import load_dotenv
+# Make python-dotenv optional so missing dev deps don't crash discovery in GUI clients
+try:
+    from dotenv import load_dotenv  # type: ignore
+except Exception:
+    def load_dotenv(*_args, **_kwargs):  # type: ignore
+        return False
 from mcp.server.fastmcp import FastMCP
 
 # Load environment variables from .env if present (e.g., OSXPHOTOS_BIN)
@@ -1228,3 +1233,10 @@ def uninstall(
         cmd.append("--yes")
     cmd.extend(packages)
     return run_osxphotos_command(cmd)
+
+
+if __name__ == "__main__":
+    # Run the FastMCP server over stdio when invoked directly
+    # This allows launching with: `python src/mcp_osxphotos/server.py`
+    # and also works when wrapped by `mcp dev ... server.py`.
+    mcp.run()

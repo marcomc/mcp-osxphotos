@@ -73,7 +73,8 @@ This runs the published console script and starts the server over stdio.
 Development (from local source):
 
 ```bash
-uv run mcp dev src/mcp_osxphotos/server.py
+# Run the FastMCP server directly (no banners printed to stdout)
+uv --directory /absolute/path/to/mcp-osxphotos run python src/mcp_osxphotos/server.py
 ```
 
 ## Using uvx (alternative)
@@ -87,7 +88,24 @@ uvx mcp-osxphotos
 Notes:
 
 - With `uvx`, you don’t need to install `mcp[cli]` into your venv. The `mcp` tool will be resolved automatically.
-- For GUI clients (Claude, Continue, Zed, etc.), you can set the command to `uvx` and remove `run` from the args (see examples below).
+- For GUI clients (Claude, Continue, Zed, etc.), avoid wrapping the server with `mcp dev` because it prints human-readable banners to stdout, which will break JSON-RPC parsing in clients. Instead, run Python directly on `src/mcp_osxphotos/server.py` (examples below) or use the published console script `mcp-osxphotos`.
+
+## Environment management: uv vs .venv
+
+You don’t need a pre-created `.venv` for the client configurations shown here. There are two supported ways to run:
+
+- Use uv to provide the environment (recommended for GUI clients):
+    - Example: `uv --directory /path/to/mcp-osxphotos run python src/mcp_osxphotos/server.py`
+    - uv will run the server with the project’s dependencies resolved from your `pyproject.toml`/`uv.lock` without requiring you to manually activate a venv.
+    - This is what the sample Gemini/Claude/Zed configs use; no extra install step is required.
+
+- Use your own persistent venv (handy for running tests or local dev shells):
+    - Create/populate it with `uv sync` (or your preferred tool), which will install the pinned dependencies into `.venv/`.
+    - Point your client to the venv’s Python (e.g., `/absolute/path/to/mcp-osxphotos/.venv/bin/python`) and set the script to `src/mcp_osxphotos/server.py`.
+
+Rule of thumb:
+- If your client command starts with `uv`/`uvx`, you do not need extra installation steps; uv will handle resolving the environment for that run.
+- If your client command starts with a bare `python` path, ensure that Python’s environment already has the project dependencies (use `.venv/bin/python` after `uv sync`).
 
 ## Testing
 
@@ -100,7 +118,7 @@ Once the server is running, you can test it using the MCP Inspector, a web-based
 
 ## Configure with common MCP clients
 
-Below are examples for wiring this server into popular MCP clients. For development, use an absolute path to `src/mcp_osxphotos/server.py`. For published usage, prefer the console script `mcp-osxphotos`. Set `OSXPHOTOS_BIN` if your client is a GUI app (it may not inherit your shell PATH).
+Below are examples for wiring this server into popular MCP clients. For development, use an absolute path to `src/mcp_osxphotos/server.py` and run Python directly (do not use `mcp dev` in GUI clients). For published usage, prefer the console script `mcp-osxphotos`. Set `OSXPHOTOS_BIN` if your client is a GUI app (it may not inherit your shell PATH).
 
 Tip: After adding a server, run `python_version` and `osxphotos_health` from your client to verify the environment.
 
@@ -115,7 +133,7 @@ Dev config (local source):
     "mcpServers": {
         "mcp-osxphotos": {
             "command": "uv",
-            "args": ["run", "mcp", "dev", "/absolute/path/to/src/mcp_osxphotos/server.py"],
+            "args": ["--directory", "/absolute/path/to/mcp-osxphotos", "run", "python", "src/mcp_osxphotos/server.py"],
             "env": {
                 "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos"
             }
@@ -153,7 +171,7 @@ Dev config (local source):
     "mcpServers": {
         "mcp-osxphotos": {
             "command": "uv",
-            "args": ["run", "mcp", "dev", "/absolute/path/to/src/mcp_osxphotos/server.py"],
+            "args": ["--directory", "/absolute/path/to/mcp-osxphotos", "run", "python", "src/mcp_osxphotos/server.py"],
             "env": {
                 "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos"
             }
@@ -193,7 +211,7 @@ Dev config (local source):
             {
                 "name": "mcp-osxphotos",
                 "binary": "uv",
-                "args": ["run", "mcp", "dev", "/absolute/path/to/src/mcp_osxphotos/server.py"],
+                "args": ["--directory", "/absolute/path/to/mcp-osxphotos", "run", "python", "src/mcp_osxphotos/server.py"],
                 "env": { "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos" }
             }
         ]
@@ -231,7 +249,7 @@ Dev config (local source):
     "mcpServers": {
         "mcp-osxphotos": {
             "command": "uv",
-            "args": ["run", "mcp", "dev", "/absolute/path/to/src/mcp_osxphotos/server.py"],
+            "args": ["--directory", "/absolute/path/to/mcp-osxphotos", "run", "python", "src/mcp_osxphotos/server.py"],
             "env": { "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos" }
         }
     }
@@ -289,13 +307,17 @@ For a great debugging experience, use the MCP Inspector:
     npx @modelcontextprotocol/inspector uvx mcp-osxphotos
     ```
 
-- Local development:
+- Local development (no banners):
 
     ```bash
-    npx @modelcontextprotocol/inspector uv --directory /absolute/path/to/mcp-osxphotos run mcp dev src/mcp_osxphotos/server.py
+    npx @modelcontextprotocol/inspector uv --directory /absolute/path/to/mcp-osxphotos run python src/mcp_osxphotos/server.py
     ```
 
 The Inspector will display a URL you can open in your browser.
+
+Warning:
+
+- Avoid `mcp dev` when launching from GUI clients or inspector if your client parses stdout strictly as JSON-RPC. The `mcp dev` wrapper prints a human-readable banner to stdout which can cause errors like “Unexpected token … is not valid JSON”. Running the FastMCP server directly via `python src/mcp_osxphotos/server.py` avoids this.
 
 ### Lockfile maintenance
 
@@ -326,6 +348,18 @@ Notes:
 
 - The tests don’t require `osxphotos` to be installed; they only report discovery status. If `osxphotos` is not found, the test still passes as long as `osxphotos_health` returns the expected JSON shape.
 - The tests add `src/` to `sys.path` so they work from a local checkout without installation.
+
+### Common pitfalls and troubleshooting
+
+- ModuleNotFoundError: No module named 'mcp' when launching from a GUI:
+    - Ensure you launch with a Python that has project dependencies available. Prefer:
+        - `command`: absolute path to your venv’s Python, or
+        - `command`: `uv` with `args`: `["--directory", "/path/to/mcp-osxphotos", "run", "python", "src/mcp_osxphotos/server.py"]`.
+- JSON parse errors like “Unexpected token … is not valid JSON”:
+    - Don’t use `mcp dev` in your GUI config. It prints banners to stdout. Launch the server directly.
+- GUI apps often don’t inherit your PATH:
+    - Set `OSXPHOTOS_BIN` to the absolute path for `osxphotos`.
+    - Consider using absolute paths for `uv`, `python`, etc., in your client config.
 
 ## License
 
