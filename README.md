@@ -66,7 +66,9 @@ If the executable cannot be found, tools will return a clear error message askin
 
 Tip: Verify discovery with the `osxphotos_health` tool. It reports the resolved path, `--version`, and relevant environment variables. If you’re running this from an app that manages its own environment, ensure the directory that contains `osxphotos` is on `PATH` (use `which osxphotos` to find it), or set `OSXPHOTOS_BIN` to the absolute path explicitly.
 
-Python version: This server targets Python >= 3.12,<3.14. The setup instructions below create a Python 3.12 virtual environment. You can confirm the runtime with the `python_version` tool.
+Python version: This server targets Python >= 3.11. You can confirm the runtime with the `python_version` tool.
+
+Environment configuration: This server loads a `.env` file if present (via python-dotenv). You can set `OSXPHOTOS_BIN=/absolute/path/to/osxphotos` there instead of wiring it into your client config.
 
 ## Installation and Setup
 
@@ -78,34 +80,38 @@ Python version: This server targets Python >= 3.12,<3.14. The setup instructions
     cd mcp-osxphotos
     ```
 
-2. **Create a virtual environment and install dependencies:**
+2. **Install dependencies with uv (optional for published usage):**
 
-    This project uses `uv` for package management. Make sure you have `uv` installed.
+    This project uses `uv` for package management. For local development:
 
     ```bash
-    # Create the virtual environment with Python 3.12 and install pip
-    uv venv --python 3.12 --seed
-
-    # Install the required packages
-    .venv/bin/python -m pip install "mcp[cli]"
+    uv sync
     ```
 
 ## Usage
 
 To run the MCP server, execute the following command from the project's root directory:
 
+Recommended (published package):
+
 ```bash
-uv run mcp dev main.py
+uvx mcp-osxphotos
 ```
 
-This will start the server in development mode.
+This runs the published console script and starts the server over stdio.
+
+Development (from local source):
+
+```bash
+uv run mcp dev src/mcp_osxphotos/server.py
+```
 
 ## Using uvx (alternative)
 
-If you prefer not to install the MCP CLI into your virtual environment, you can launch the server using uvx. This downloads and runs the `mcp` CLI in an isolated environment (cached by uv) and points it at your local `main.py`.
+If you prefer not to install anything locally, you can launch the server using uvx. This downloads and runs the package in an isolated environment (cached by uv).
 
 ```bash
-uvx mcp dev main.py
+uvx mcp-osxphotos
 ```
 
 Notes:
@@ -124,7 +130,7 @@ Once the server is running, you can test it using the MCP Inspector, a web-based
 
 ## Configure with common MCP clients
 
-Below are examples for wiring this server into popular MCP clients. Use absolute paths to `main.py` and set `OSXPHOTOS_BIN` if your client is a GUI app (it may not inherit your shell PATH).
+Below are examples for wiring this server into popular MCP clients. For development, use an absolute path to `src/mcp_osxphotos/server.py`. For published usage, prefer the console script `mcp-osxphotos`. Set `OSXPHOTOS_BIN` if your client is a GUI app (it may not inherit your shell PATH).
 
 Tip: After adding a server, run `python_version` and `osxphotos_health` from your client to verify the environment.
 
@@ -132,12 +138,14 @@ Tip: After adding a server, run `python_version` and `osxphotos_health` from you
 
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json` and add an entry under `mcpServers`:
 
+Dev config (local source):
+
 ```json
 {
     "mcpServers": {
         "mcp-osxphotos": {
             "command": "uv",
-            "args": ["run", "mcp", "dev", "/absolute/path/to/main.py"],
+            "args": ["run", "mcp", "dev", "/absolute/path/to/src/mcp_osxphotos/server.py"],
             "env": {
                 "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos"
             }
@@ -146,14 +154,14 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` and add a
 }
 ```
 
-Tip: You can also use uvx instead of a local installation of `mcp`:
+Published config (recommended):
 
 ```json
 {
     "mcpServers": {
         "mcp-osxphotos": {
             "command": "uvx",
-            "args": ["mcp", "dev", "/absolute/path/to/main.py"],
+            "args": ["mcp-osxphotos"],
             "env": {
                 "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos"
             }
@@ -168,12 +176,14 @@ Then restart Claude Desktop.
 
 Create or edit `~/.continue/config.json` (user-level) or `.continue/config.json` in your workspace:
 
+Dev config (local source):
+
 ```json
 {
     "mcpServers": {
         "mcp-osxphotos": {
             "command": "uv",
-            "args": ["run", "mcp", "dev", "/absolute/path/to/main.py"],
+            "args": ["run", "mcp", "dev", "/absolute/path/to/src/mcp_osxphotos/server.py"],
             "env": {
                 "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos"
             }
@@ -182,14 +192,14 @@ Create or edit `~/.continue/config.json` (user-level) or `.continue/config.json`
 }
 ```
 
-Or with uvx:
+Or with published package:
 
 ```json
 {
     "mcpServers": {
         "mcp-osxphotos": {
             "command": "uvx",
-            "args": ["mcp", "dev", "/absolute/path/to/main.py"],
+            "args": ["mcp-osxphotos"],
             "env": {
                 "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos"
             }
@@ -204,6 +214,8 @@ Reload the Continue extension (or VS Code) and look for the server under Tools.
 
 Add a server entry to your Zed settings (e.g., `~/.config/zed/settings.json`). Insert under the root settings object:
 
+Dev config (local source):
+
 ```json
 {
     "mcp": {
@@ -211,7 +223,7 @@ Add a server entry to your Zed settings (e.g., `~/.config/zed/settings.json`). I
             {
                 "name": "mcp-osxphotos",
                 "binary": "uv",
-                "args": ["run", "mcp", "dev", "/absolute/path/to/main.py"],
+                "args": ["run", "mcp", "dev", "/absolute/path/to/src/mcp_osxphotos/server.py"],
                 "env": { "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos" }
             }
         ]
@@ -219,7 +231,7 @@ Add a server entry to your Zed settings (e.g., `~/.config/zed/settings.json`). I
 }
 ```
 
-Or with uvx:
+Or with published package:
 
 ```json
 {
@@ -228,7 +240,7 @@ Or with uvx:
             {
                 "name": "mcp-osxphotos",
                 "binary": "uvx",
-                "args": ["mcp", "dev", "/absolute/path/to/main.py"],
+                "args": ["mcp-osxphotos"],
                 "env": { "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos" }
             }
         ]
@@ -242,26 +254,28 @@ Restart Zed to pick up changes.
 
 If your `gemini-cli` supports MCP servers via a config file, the entry typically follows the same pattern as above. Use this as a template and consult the `gemini-cli` documentation for the exact config path and schema:
 
+Dev config (local source):
+
 ```json
 {
     "mcpServers": {
         "mcp-osxphotos": {
             "command": "uv",
-            "args": ["run", "mcp", "dev", "/absolute/path/to/main.py"],
+            "args": ["run", "mcp", "dev", "/absolute/path/to/src/mcp_osxphotos/server.py"],
             "env": { "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos" }
         }
     }
 }
 ```
 
-Or with uvx:
+Or with published package:
 
 ```json
 {
     "mcpServers": {
         "mcp-osxphotos": {
             "command": "uvx",
-            "args": ["mcp", "dev", "/absolute/path/to/main.py"],
+            "args": ["mcp-osxphotos"],
             "env": { "OSXPHOTOS_BIN": "/absolute/path/to/osxphotos" }
         }
     }
@@ -1305,9 +1319,35 @@ The tools in this server are wrappers around the `osxphotos` CLI tool. When you 
 
 ### Extending the Server
 
-You can easily extend the server by adding new tools or modifying the existing ones in the `main.py` file.
+You can easily extend the server by adding new tools or modifying the existing ones in `src/mcp_osxphotos/server.py`.
 
 To add a new tool, simply define a new function and decorate it with `@mcp.tool()`. The function's name will be the tool's name, and its parameters will be the tool's parameters. Inside the function, you can use the `subprocess` module to execute any `osxphotos` command you want.
+
+### Debugging with MCP Inspector
+
+For a great debugging experience, use the MCP Inspector:
+
+- Published package:
+
+    ```bash
+    npx @modelcontextprotocol/inspector uvx mcp-osxphotos
+    ```
+
+- Local development:
+
+    ```bash
+    npx @modelcontextprotocol/inspector uv --directory /absolute/path/to/mcp-osxphotos run mcp dev src/mcp_osxphotos/server.py
+    ```
+
+The Inspector will display a URL you can open in your browser.
+
+### Lockfile maintenance
+
+If you change dependencies or project metadata, regenerate the lockfile:
+
+```bash
+uv sync
+```
 
 ## License
 
