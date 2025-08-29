@@ -4,6 +4,8 @@
 
 An MCP server for interacting with the `osxphotos` CLI tool.
 
+This project provides Model Context Protocol tools around the open source project [osxphotos](https://github.com/RhetTbull/osxphotos).
+
 This server provides a way for AI tools that support the Model Context Protocol (MCP) to interact with your Apple Photos library through the powerful `osxphotos` command-line tool.
  
 ## Quick Index
@@ -50,6 +52,7 @@ This server provides a way for AI tools that support the Model Context Protocol 
     - [VS Code – Continue extension](#vs-code--continue-extension)
     - [Zed editor](#zed-editor)
     - [gemini-cli (template)](#gemini-cli-template)
+- [License](#license)
 
 ## Prerequisites
 
@@ -1228,3 +1231,7 @@ The tools in this server are wrappers around the `osxphotos` CLI tool. When you 
 You can easily extend the server by adding new tools or modifying the existing ones in the `main.py` file.
 
 To add a new tool, simply define a new function and decorate it with `@mcp.tool()`. The function's name will be the tool's name, and its parameters will be the tool's parameters. Inside the function, you can use the `subprocess` module to execute any `osxphotos` command you want.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
