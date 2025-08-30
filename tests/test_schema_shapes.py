@@ -85,6 +85,18 @@ class TestSchemaShapes(unittest.TestCase):
                 self.assertIn("Dict", rep, f"{fn.__name__}.{name} should be a List[Dict[...]] type: {rep}")
                 self.assertIn("str", rep, f"{fn.__name__}.{name} should be Dict[str, str] value type: {rep}")
 
+    def test_field_annotation_accepts_legacy_forms(self):
+        hints_dump = get_type_hints(server.dump)
+        hints_query = get_type_hints(server.query_photos)
+        for ann in (hints_dump.get("field"), hints_query.get("field")):
+            rep = repr(ann)
+            self.assertIn("List", rep)
+            self.assertIn("Dict", rep)
+            # also allow List[str] and List[List[str]] in the union
+            self.assertTrue("List[str]" in rep or "typing.List[str]" in rep)
+            self.assertTrue("List[List[str]]" in rep or "typing.List[typing.List[str]]" in rep)
+            self.assertNotIn("Tuple", rep)
+
 
 if __name__ == "__main__":
     unittest.main()

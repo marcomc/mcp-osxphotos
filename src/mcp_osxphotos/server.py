@@ -3,7 +3,7 @@ import sys
 import shutil
 import subprocess
 import json
-from typing import List, Optional, Literal, Tuple, Dict, Any
+from typing import List, Optional, Literal, Tuple, Dict, Any, Union
 
 # Make python-dotenv optional so missing dev deps don't crash discovery in GUI clients
 try:
@@ -459,6 +459,39 @@ def osxphotos_batch_edit(
     theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
     library: Optional[str] = None,
 ) -> str:
+    """Alias for batch_edit to accommodate clients that prefix tool names with 'osxphotos_'."""
+    return batch_edit(
+        title=title,
+        description=description,
+        keyword=keyword,
+        replace_keywords=replace_keywords,
+        location=location,
+        album=album,
+        split_folder=split_folder,
+        dry_run=dry_run,
+        undo=undo,
+        verbose=verbose,
+        timestamp=timestamp,
+        theme=theme,
+        library=library,
+    )
+
+@mcp.tool()
+def osxphotos_batch_edit(
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    keyword: Optional[List[str]] = None,
+    replace_keywords: bool = False,
+    location: Optional[List[float]] = None,
+    album: Optional[List[str]] = None,
+    split_folder: Optional[str] = None,
+    dry_run: bool = False,
+    undo: bool = False,
+    verbose: bool = False,
+    timestamp: bool = False,
+    theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
+    library: Optional[str] = None,
+) -> str:
     """Alias for batch_edit for clients that expect a prefixed tool name."""
     return batch_edit(
         title=title,
@@ -513,7 +546,7 @@ def dump(
     json: bool = False,
     deleted_only: bool = False,
     deleted: bool = False,
-    field: Optional[List[Dict[str, str]]] = None,
+    field: Optional[Union[List[Dict[str, str]], List[str], List[List[str]]]] = None,
     print_template: Optional[List[str]] = None,
 ) -> str:
     """DEPRECATED: Print list of all photos & associated info from the Photos library. Use query instead."""
@@ -1248,7 +1281,7 @@ def query_photos(
     deleted: bool = False,
     add_to_album: Optional[str] = None,
     quiet: bool = False,
-    field: Optional[List[Dict[str, str]]] = None,
+    field: Optional[Union[List[Dict[str, str]], List[str], List[List[str]]]] = None,
     print_template: Optional[List[str]] = None,
     mute: bool = False,
 ) -> str:
