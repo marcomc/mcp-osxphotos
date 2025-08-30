@@ -33,9 +33,13 @@ class SmokeTests(unittest.TestCase):
 
     def test_osxphotos_batch_edit_alias_exists(self):
         # Should be invocable without raising; dry-run to avoid side effects
-        out = server.osxphotos_batch_edit(dry_run=True, keyword=["animal"])  # type: ignore[attr-defined]
+        out = server.batch_edit(dry_run=True, keyword=["animal"])  # type: ignore[arg-type]
         # The command might fail at runtime if osxphotos isn't installed; that's OK.
         # We only assert that the function exists and returns a string.
+        self.assertIsInstance(out, str)
+    def test_batch_edit_available(self):
+        # Ensure the canonical batch_edit tool exists
+        out = server.batch_edit(dry_run=True, keyword=["animal"])  # type: ignore[arg-type]
         self.assertIsInstance(out, str)
 
 

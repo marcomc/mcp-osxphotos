@@ -27,12 +27,12 @@ class TestToolsRegistry(unittest.TestCase):
 
         names = set(k for k in tools.keys() if isinstance(k, str))
 
-        # Must include both names
+        # Must include canonical name and not include alias
         self.assertIn("batch_edit", names, f"Registered tools did not include 'batch_edit'. Found: {sorted(names)}")
-        self.assertIn(
+        self.assertNotIn(
             "osxphotos_batch_edit",
             names,
-            f"Registered tools did not include 'osxphotos_batch_edit'. Found: {sorted(names)}",
+            f"Alias tool 'osxphotos_batch_edit' should not be registered. Found: {sorted(names)}",
         )
 
 

@@ -4,6 +4,12 @@
 
 The server exposes tools for many of the commands available in the `osxphotos` CLI tool. Below is a detailed description of each tool and the parameters it exposes to AI tools.
 
+Guidance for AI/tooling consumers:
+- Use label (singular) when filtering by ML labels; it accepts multiple values (List[str]). Example: label=["Welsh Terrier"].
+- print_template parameter maps to CLI flag --print.
+- exiftool_flag (bool) maps to CLI flag --exiftool.
+- For pair/triple multi-argument options, provide list-of-objects with explicit keys (no tuples), e.g. regex: [{pattern, template}], exif: [{tag, value}], field: [{field, template}], xattr_template: [{attribute, template}], post_command: [{category, command}], sidecar_template: [{mako_template, filename_template, options}].
+
 ## `about`
 
 Prints information about osxphotos including license.
@@ -229,6 +235,10 @@ Parameters:
 Exports photos from the Photos database.
 
 Invokes the `osxphotos export` command.
+
+Guidance:
+- Filter by image classification labels using label (singular). Accepts multiple values.
+- print_template maps to --print; exiftool_flag maps to --exiftool.
 
 Notes on multi-argument options:
 
@@ -610,6 +620,9 @@ Writes photo metadata to original files in the Photos library.
 
 Invokes the `osxphotos push-exif` command.
 
+Guidance:
+- Filter by labels with label (singular). Accepts multiple values.
+
 Parameters:
 
 - `metadata` (str): Metadata to push (e.g., 'all', 'keywords', 'location').
@@ -731,6 +744,9 @@ Note: In this MCP, multi-argument options are strongly typed and must be provide
 Queries the Photos database using 1 or more search options.
 
 Invokes the `osxphotos query` command.
+
+Guidance:
+- Use label (singular) when filtering by ML labels. Accepts multiple values. Example: label=["Welsh Terrier"].
 
 Parameters:
 
@@ -855,6 +871,9 @@ Parameters:
 Syncs metadata and albums between Photos libraries.
 
 Invokes the `osxphotos sync` command.
+
+Guidance:
+- Filter by labels with label (singular). Accepts multiple values.
 
 Parameters:
 

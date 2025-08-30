@@ -443,71 +443,7 @@ def batch_edit(
                 cmd.extend([_flag(key), str(value)])
     return run_osxphotos_command(cmd)
 
-@mcp.tool()
-def osxphotos_batch_edit(
-    title: Optional[str] = None,
-    description: Optional[str] = None,
-    keyword: Optional[List[str]] = None,
-    replace_keywords: bool = False,
-    location: Optional[List[float]] = None,
-    album: Optional[List[str]] = None,
-    split_folder: Optional[str] = None,
-    dry_run: bool = False,
-    undo: bool = False,
-    verbose: bool = False,
-    timestamp: bool = False,
-    theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
-    library: Optional[str] = None,
-) -> str:
-    """Alias for batch_edit to accommodate clients that prefix tool names with 'osxphotos_'."""
-    return batch_edit(
-        title=title,
-        description=description,
-        keyword=keyword,
-        replace_keywords=replace_keywords,
-        location=location,
-        album=album,
-        split_folder=split_folder,
-        dry_run=dry_run,
-        undo=undo,
-        verbose=verbose,
-        timestamp=timestamp,
-        theme=theme,
-        library=library,
-    )
-
-@mcp.tool()
-def osxphotos_batch_edit(
-    title: Optional[str] = None,
-    description: Optional[str] = None,
-    keyword: Optional[List[str]] = None,
-    replace_keywords: bool = False,
-    location: Optional[List[float]] = None,
-    album: Optional[List[str]] = None,
-    split_folder: Optional[str] = None,
-    dry_run: bool = False,
-    undo: bool = False,
-    verbose: bool = False,
-    timestamp: bool = False,
-    theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
-    library: Optional[str] = None,
-) -> str:
-    """Alias for batch_edit for clients that expect a prefixed tool name."""
-    return batch_edit(
-        title=title,
-        description=description,
-        keyword=keyword,
-        replace_keywords=replace_keywords,
-        location=location,
-        album=album,
-        split_folder=split_folder,
-        dry_run=dry_run,
-        undo=undo,
-        verbose=verbose,
-        timestamp=timestamp,
-        theme=theme,
-        library=library,
-    )
+ 
 
 @mcp.tool()
 def compare(
@@ -784,7 +720,12 @@ def export_photos(
     print_template: Optional[List[str]] = None,
     theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
 ) -> str:
-    """Export photos from the Photos database."""
+    """Export photos from the Photos database.
+
+    Notes for AI/tooling:
+    - To filter by image classification labels, use 'label' (singular). It accepts multiple values.
+    - Example: label=["Welsh Terrier"].
+    """
     cmd = ["osxphotos", "export", dest]
     for key, value in locals().items():
         if key == 'dest':
@@ -1164,7 +1105,12 @@ def push_exif(
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
 ) -> str:
-    """Write photo metadata to original files in the Photos library."""
+    """Write photo metadata to original files in the Photos library.
+
+    Notes for AI/tooling:
+    - For label-based filtering, use 'label' (singular). It accepts multiple values.
+    - Example: label=["Welsh Terrier"].
+    """
     cmd = ["osxphotos", "push-exif", metadata]
     for key, value in locals().items():
         if key == 'metadata':
@@ -1285,7 +1231,12 @@ def query_photos(
     print_template: Optional[List[str]] = None,
     mute: bool = False,
 ) -> str:
-    """Query the Photos database using 1 or more search options."""
+    """Query the Photos database using 1 or more search options.
+
+    Notes for AI/tooling:
+    - Use 'label' (singular) to filter by machine-learning labels. It accepts multiple values (List[str]).
+    - Example: label=["Welsh Terrier"].
+    """
     cmd = ["osxphotos", "query"]
     for key, value in locals().items():
         if key == "cmd":
@@ -1412,7 +1363,12 @@ def sync(
     library: Optional[str] = None,
     theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
 ) -> str:
-    """Sync metadata and albums between Photos libraries."""
+    """Sync metadata and albums between Photos libraries.
+
+    Notes for AI/tooling:
+    - Use 'label' (singular) to filter by ML labels; it accepts multiple values.
+    - Example: label=["Welsh Terrier"].
+    """
     cmd = ["osxphotos", "sync"]
     for key, value in locals().items():
         if key == "cmd":
