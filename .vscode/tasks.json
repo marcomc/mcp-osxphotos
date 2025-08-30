@@ -8,6 +8,14 @@
 			"isBackground": false,
 			"group": "build",
 			"problemMatcher": []
+		},
+		{
+			"label": "unittest: discover (verbose)",
+			"type": "shell",
+			"command": "./.venv/bin/python -m unittest discover -s tests -p 'test*.py' -v",
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
 		}
 	]
 }

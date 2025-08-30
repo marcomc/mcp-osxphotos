@@ -32,7 +32,8 @@ This directory contains the unit and smoke tests for the mcp-osxphotos project.
 We use Python's built-in `unittest` to avoid external dependencies.
 
 - Recommended options:
-  - VS Code: Run the task "unittest: discover" from the Command Palette.
+  - VS Code: Run the task "unittest: discover" (quiet) or
+    "unittest: discover (verbose)" from the Command Palette.
   - Makefile: `make test`
   - Direct (fish shell): run the command below.
 
