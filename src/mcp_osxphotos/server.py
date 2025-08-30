@@ -64,6 +64,81 @@ def run_osxphotos_command(command: List[str]) -> str:
     except subprocess.CalledProcessError as e:
         return f"Error: {e.stderr}"
 
+
+# ----- Internal helpers for building CLI args -----
+def _flag(name: str) -> str:
+    return f"--{name.replace('_', '-')}"
+
+
+def _append_multi_arg_pairs(cmd: List[str], name: str, value: List[str | List[str]]) -> None:
+    """Append an option that requires two arguments per occurrence.
+
+    Accepts either:
+    - flat list with even length: [A, B, C, D] -> --name A B --name C D
+    - list of pairs: [[A, B], [C, D]] -> same as above
+    """
+    if not value:
+        return
+    # If already a list of pairs
+    if isinstance(value, list) and value and isinstance(value[0], (list, tuple)):
+        for pair in value:  # type: ignore[assignment]
+            if len(pair) != 2:  # type: ignore[arg-type]
+                raise ValueError(f"Option '{name}' requires pairs of two arguments, got: {pair}")
+            cmd.extend([_flag(name), str(pair[0]), str(pair[1])])  # type: ignore[index]
+        return
+
+    # Otherwise expect a flat list with even length
+    flat = [str(v) for v in value]  # type: ignore[list-item]
+    if len(flat) % 2 != 0:
+        raise ValueError(f"Option '{name}' requires an even number of arguments (pairs), got {len(flat)}")
+    for i in range(0, len(flat), 2):
+        cmd.extend([_flag(name), flat[i], flat[i + 1]])
+
+
+def _append_location_pair(cmd: List[str], name: str, value: Optional[List[float]]) -> bool:
+    """Append a '--location LAT LON' style option.
+
+    Returns True if handled, False otherwise.
+    """
+    if value is None:
+        return False
+    if not isinstance(value, list) or len(value) != 2:
+        raise ValueError(f"Option '{name}' requires exactly two values: [LATITUDE, LONGITUDE]")
+    lat, lon = value
+    cmd.extend([_flag(name), str(lat), str(lon)])
+    return True
+
+def _append_multi_arg_group(
+    cmd: List[str], name: str, value: List[str | List[str]], arity: int
+) -> None:
+    """Append an option that requires N arguments per occurrence.
+
+    Accepts either a flat list whose length is a multiple of arity
+    or a list of lists/tuples where each sub-sequence length == arity.
+    """
+    if not value:
+        return
+    # If already a list of groups
+    if isinstance(value, list) and value and isinstance(value[0], (list, tuple)):
+        for group in value:  # type: ignore[assignment]
+            if len(group) != arity:  # type: ignore[arg-type]
+                raise ValueError(
+                    f"Option '{name}' requires groups of {arity} arguments, got: {group}"
+                )
+            cmd.append(_flag(name))
+            cmd.extend([str(v) for v in group])  # type: ignore[list-item]
+        return
+
+    # Otherwise expect a flat list with length multiple of arity
+    flat = [str(v) for v in value]  # type: ignore[list-item]
+    if len(flat) % arity != 0:
+        raise ValueError(
+            f"Option '{name}' requires a number of arguments that is a multiple of {arity}, got {len(flat)}"
+        )
+    for i in range(0, len(flat), arity):
+        cmd.append(_flag(name))
+        cmd.extend(flat[i : i + arity])
+
 @mcp.tool()
 def osxphotos_health() -> str:
     """Return diagnostic info about how the server finds and runs osxphotos."""
@@ -197,13 +272,15 @@ def add_locations(
     cmd = ["osxphotos", "add-locations"]
     for key, value in locals().items():
         if value:
-            if isinstance(value, bool):
-                cmd.append(f"--{key.replace('_', '-')}")
+            if key in {"regex", "exif"}:
+                _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
+            elif isinstance(value, bool):
+                cmd.append(_flag(key))
             elif isinstance(value, list):
                 for item in value:
-                    cmd.extend([f"--{key.replace('_', '-')}", str(item)])
+                    cmd.extend([_flag(key), str(item)])
             else:
-                cmd.extend([f"--{key.replace('_', '-')}", str(value)])
+                cmd.extend([_flag(key), str(value)])
     return run_osxphotos_command(cmd)
 
 @mcp.tool()
@@ -239,13 +316,17 @@ def batch_edit(
     cmd = ["osxphotos", "batch-edit"]
     for key, value in locals().items():
         if value:
+            if key == "location":
+                handled = _append_location_pair(cmd, key, value)  # type: ignore[arg-type]
+                if handled:
+                    continue
             if isinstance(value, bool):
-                cmd.append(f"--{key.replace('_', '-')}")
+                cmd.append(_flag(key))
             elif isinstance(value, list):
                 for item in value:
-                    cmd.extend([f"--{key.replace('_', '-')}", str(item)])
+                    cmd.extend([_flag(key), str(item)])
             else:
-                cmd.extend([f"--{key.replace('_', '-')}", str(value)])
+                cmd.extend([_flag(key), str(value)])
     return run_osxphotos_command(cmd)
 
 @mcp.tool()
@@ -290,13 +371,15 @@ def dump(
     cmd = ["osxphotos", "dump"]
     for key, value in locals().items():
         if value:
-            if isinstance(value, bool):
-                cmd.append(f"--{key.replace('_', '-')}")
+            if key == "field":
+                _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
+            elif isinstance(value, bool):
+                cmd.append(_flag(key))
             elif isinstance(value, list):
                 for item in value:
-                    cmd.extend([f"--{key.replace('_', '-')}", str(item)])
+                    cmd.extend([_flag(key), str(item)])
             else:
-                cmd.extend([f"--{key.replace('_', '-')}", str(value)])
+                cmd.extend([_flag(key), str(value)])
     return run_osxphotos_command(cmd)
 
 @mcp.tool()
@@ -521,13 +604,18 @@ def export_photos(
         if key == 'dest':
             continue
         if value:
-            if isinstance(value, bool):
-                cmd.append(f"--{key.replace('_', '-')}")
-            elif isinstance(value, list):
-                for item in value:
-                    cmd.extend([f"--{key.replace('_', '-')}", str(item)])
+            if key in {"xattr_template", "post_command", "regex", "exif"}:
+                _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
+            elif key == "sidecar_template":
+                _append_multi_arg_group(cmd, key, value, 3)  # type: ignore[arg-type]
             else:
-                cmd.extend([f"--{key.replace('_', '-')}", str(value)])
+                if isinstance(value, bool):
+                    cmd.append(_flag(key))
+                elif isinstance(value, list):
+                    for item in value:
+                        cmd.extend([_flag(key), str(item)])
+                else:
+                    cmd.extend([_flag(key), str(value)])
     return run_osxphotos_command(cmd)
 
 @mcp.tool()
@@ -642,13 +730,17 @@ def import_photos(
         if key == 'files_or_dirs':
             continue
         if value:
+            if key == "location":
+                handled = _append_location_pair(cmd, key, value)  # type: ignore[arg-type]
+                if handled:
+                    continue
             if isinstance(value, bool):
-                cmd.append(f"--{key.replace('_', '-')}")
+                cmd.append(_flag(key))
             elif isinstance(value, list):
                 for item in value:
-                    cmd.extend([f"--{key.replace('_', '-')}", str(item)])
+                    cmd.extend([_flag(key), str(item)])
             else:
-                cmd.extend([f"--{key.replace('_', '-')}", str(value)])
+                cmd.extend([_flag(key), str(value)])
     return run_osxphotos_command(cmd)
 
 @mcp.tool()
@@ -874,13 +966,15 @@ def push_exif(
         if key == 'metadata':
             continue
         if value:
-            if isinstance(value, bool):
-                cmd.append(f"--{key.replace('_', '-')}")
+            if key in {"regex", "exif"}:
+                _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
+            elif isinstance(value, bool):
+                cmd.append(_flag(key))
             elif isinstance(value, list):
                 for item in value:
-                    cmd.extend([f"--{key.replace('_', '-')}", str(item)])
+                    cmd.extend([_flag(key), str(item)])
             else:
-                cmd.extend([f"--{key.replace('_', '-')}", str(value)])
+                cmd.extend([_flag(key), str(value)])
     return run_osxphotos_command(cmd)
 
 @mcp.tool()
@@ -989,13 +1083,15 @@ def query_photos(
     cmd = ["osxphotos", "query"]
     for key, value in locals().items():
         if value:
-            if isinstance(value, bool):
-                cmd.append(f"--{key.replace('_', '-')}")
+            if key in {"field", "regex", "exif"}:
+                _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
+            elif isinstance(value, bool):
+                cmd.append(_flag(key))
             elif isinstance(value, list):
                 for item in value:
-                    cmd.extend([f"--{key.replace('_', '-')}", str(item)])
+                    cmd.extend([_flag(key), str(item)])
             else:
-                cmd.extend([f"--{key.replace('_', '-')}", str(value)])
+                cmd.extend([_flag(key), str(value)])
     return run_osxphotos_command(cmd)
 
 @mcp.tool()
@@ -1112,13 +1208,15 @@ def sync(
     cmd = ["osxphotos", "sync"]
     for key, value in locals().items():
         if value:
-            if isinstance(value, bool):
-                cmd.append(f"--{key.replace('_', '-')}")
+            if key in {"regex", "exif"}:
+                _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
+            elif isinstance(value, bool):
+                cmd.append(_flag(key))
             elif isinstance(value, list):
                 for item in value:
-                    cmd.extend([f"--{key.replace('_', '-')}", str(item)])
+                    cmd.extend([_flag(key), str(item)])
             else:
-                cmd.extend([f"--{key.replace('_', '-')}", str(value)])
+                cmd.extend([_flag(key), str(value)])
     return run_osxphotos_command(cmd)
 
 @mcp.tool()

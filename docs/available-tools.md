@@ -108,12 +108,16 @@ Parameters:
 - `not_shared_moment` (bool): Search for photos that are not part of a shared moment.
 - `shared_library` (bool): Search for photos that are part of a shared library.
 - `not_shared_library` (bool): Search for photos that are not part of a shared library.
-- `regex` (Optional[List[str]]): Search for photos where TEMPLATE matches regular expression REGEX.
+- `regex` (Optional[List[str]]): Search for photos where REGEX matches on TEMPLATE.
 - `selected` (bool): Filter for photos that are currently selected in Photos.
 - `exif` (Optional[List[str]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE.
 - `query_eval` (Optional[List[str]]): Evaluate CRITERIA to filter photos.
 - `query_function` (Optional[List[str]]): Run function to filter photos.
 - `theme` (Optional[Literal['dark', 'light', 'mono', 'plain']]): Specify the color theme to use for output.
+  
+Note: The following options take pairs per occurrence and may be provided as a flat list [A, B, ...] or list of pairs [[A, B], ...]:
+  - `regex`: REGEX TEMPLATE
+  - `exif`: EXIF_TAG VALUE
 
 ## `albums`
 
@@ -186,7 +190,7 @@ Parameters:
 - `json` (bool): Print output in JSON format.
 - `deleted_only` (bool): Include only photos from the 'Recently Deleted' folder.
 - `deleted` (bool): Include photos from the 'Recently Deleted' folder.
-- `field` (Optional[List[str]]): Output only specified custom fields.
+- `field` (Optional[List[str]]): Output only specified custom fields. Takes pairs per occurrence: FIELD TEMPLATE. Pass as [FIELD, TEMPLATE, ...] or [[FIELD, TEMPLATE], ...].
 - `print_template` (Optional[List[str]]): Render TEMPLATE string for each photo queried and print to stdout.
 
 ## `exiftool`
@@ -225,6 +229,16 @@ Parameters:
 Exports photos from the Photos database.
 
 Invokes the `osxphotos export` command.
+
+Notes on multi-argument options:
+
+- The following options take pairs per occurrence and may be provided as a flat list [A, B, ...] or list of pairs [[A, B], ...]:
+  - `regex`: REGEX TEMPLATE
+  - `exif`: EXIF_TAG VALUE
+  - `xattr_template`: ATTRIBUTE TEMPLATE
+  - `post_command`: CATEGORY COMMAND
+- The following option takes triples per occurrence and may be provided as a flat list [A, B, C, ...] or list of triples [[A, B, C], ...]:
+  - `sidecar_template`: MAKO_TEMPLATE_FILE SIDECAR_FILENAME_TEMPLATE OPTIONS
 
 Parameters:
 
@@ -317,7 +331,7 @@ Parameters:
 - `not_shared_moment` (bool): Search for photos that are not part of a shared moment.
 - `shared_library` (bool): Search for photos that are part of a shared library.
 - `not_shared_library` (bool): Search for photos that are not part of a shared library.
-- `regex` (Optional[List[str]]): Search for photos where TEMPLATE matches regular expression REGEX.
+- `regex` (Optional[List[str]]): Search for photos where TEMPLATE matches regular expression REGEX. Usage: --regex REGEX TEMPLATE.
 - `selected` (bool): Filter for photos that are currently selected in Photos.
 - `exif` (Optional[List[str]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE.
 - `query_eval` (Optional[List[str]]): Evaluate CRITERIA to filter photos.
@@ -370,6 +384,7 @@ Parameters:
 - `finder_tag_template` (Optional[List[str]]): Set MacOS Finder tags to TEMPLATE.
 - `finder_tag_keywords` (bool): Set MacOS Finder tags to keywords.
 - `xattr_template` (Optional[List[str]]): Set extended attribute ATTRIBUTE to TEMPLATE value.
+
 - `directory` (Optional[str]): Optional template for specifying name of output directory.
 - `filename` (Optional[str]): Optional template for specifying name of output file.
 - `jpeg_ext` (Optional[str]): Specify file extension for JPEG files.
@@ -386,6 +401,7 @@ Parameters:
 - `add_skipped_to_album` (Optional[str]): Add all skipped photos to album ALBUM in Photos.
 - `add_missing_to_album` (Optional[str]): Add all missing photos to album ALBUM in Photos.
 - `post_command` (Optional[List[str]]): Run COMMAND on exported files of category CATEGORY.
+
 - `post_command_error` (Optional[Literal['continue', 'break']]): Specify either 'continue' or 'break' for ACTION to control behavior when a post-command fails.
 - `post_function` (Optional[List[str]]): Run function on exported files.
 - `exportdb` (Optional[str]): Specify alternate path for database file which stores state information for export and --update.
@@ -466,7 +482,7 @@ Parameters:
 - `description` (Optional[str]): Set description of imported photos.
 - `keyword` (Optional[List[str]]): Set keywords of imported photos.
 - `merge_keywords` (bool): Merge keywords with any keywords already associated with the photo.
-- `location` (Optional[List[float]]): Set location of imported photo.
+- `location` (Optional[List[float]]): Set location of imported photo. Requires exactly two values: [LATITUDE, LONGITUDE].
 - `favorite_rating` (Optional[int]): If XMP:Rating is set to RATING or higher, mark imported photo as a favorite.
 - `auto_live` (bool): Automatically convert photo+video pairs into live images.
 - `parse_date` (Optional[str]): Parse date from filename using DATE_PATTERN.
@@ -705,6 +721,9 @@ Parameters:
 - `exif` (Optional[List[str]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE.
 - `query_eval` (Optional[List[str]]): Evaluate CRITERIA to filter photos.
 - `query_function` (Optional[List[str]]): Run function to filter photos.
+Note: The following options take pairs per occurrence and may be provided as a flat list [A, B, ...] or list of pairs [[A, B], ...]:
+  - `regex`: REGEX TEMPLATE
+  - `exif`: EXIF_TAG VALUE
 
 ## `query_photos`
 
@@ -810,9 +829,13 @@ Parameters:
 - `deleted` (bool): Include photos from the 'Recently Deleted' folder.
 - `add_to_album` (Optional[str]): Add all photos from query to album ALBUM in Photos.
 - `quiet` (bool): Quiet output; doesn't actually print query results.
-- `field` (Optional[List[str]]): Output only specified custom fields.
+- `field` (Optional[List[str]]): Output only specified custom fields. Takes pairs per occurrence: FIELD TEMPLATE. Pass as [FIELD, TEMPLATE, ...] or [[FIELD, TEMPLATE], ...].
 - `print_template` (Optional[List[str]]): Render TEMPLATE string for each photo queried and print to stdout.
 - `mute` (bool): Mute status output while loading Photos library.
+  
+Note: The following options take pairs per occurrence and may be provided as a flat list [A, B, ...] or list of pairs [[A, B], ...]:
+  - `regex`: REGEX TEMPLATE
+  - `exif`: EXIF_TAG VALUE
 
 ## `show`
 
@@ -932,6 +955,10 @@ Parameters:
 - `query_function` (Optional[List[str]]): Run function to filter photos.
 - `library` (Optional[str]): Specify path to Photos library.
 - `theme` (Optional[Literal['dark', 'light', 'mono', 'plain']]): Specify the color theme to use for output.
+  
+Note: The following options take pairs per occurrence and may be provided as a flat list [A, B, ...] or list of pairs [[A, B], ...]:
+  - `regex`: REGEX TEMPLATE
+  - `exif`: EXIF_TAG VALUE
 
 ## `timewarp`
 
