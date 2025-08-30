@@ -20,6 +20,14 @@ mcp = FastMCP("mcp-osxphotos")
 
 _resolved_osxphotos_path: Optional[str] = None
 
+# Map parameter keys to specific flag names when they don't match simple hyphenation
+_FLAG_NAME_OVERRIDES: Dict[str, str] = {
+    # print_template maps to --print across multiple commands
+    "print_template": "print",
+    # exiftool_flag (bool) toggles --exiftool on export
+    "exiftool_flag": "exiftool",
+}
+
 def resolve_osxphotos_path() -> str:
     """Resolve the path to the osxphotos executable.
 
@@ -67,7 +75,8 @@ def run_osxphotos_command(command: List[str]) -> str:
 
 # ----- Internal helpers for building CLI args -----
 def _flag(name: str) -> str:
-    return f"--{name.replace('_', '-')}"
+    flag = _FLAG_NAME_OVERRIDES.get(name, name)
+    return f"--{flag.replace('_', '-')}"
 
 
 # Note: For MCP schema compatibility, avoid Tuple[...] and TypedDict in public tool

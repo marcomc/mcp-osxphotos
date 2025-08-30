@@ -12,6 +12,7 @@ from mcp_osxphotos.server import (  # noqa: E402
     _append_multi_arg_pairs,
     _append_multi_arg_group,
     _append_location_pair,
+    _flag,
 )
 
 
@@ -155,6 +156,10 @@ class TestArgBuilders(unittest.TestCase):
         self.assertIn("mako_template", msg)
         self.assertIn("filename_template", msg)
         self.assertIn("options", msg)
+
+    def test_flag_overrides(self):
+        self.assertEqual(_flag("print_template"), "--print")
+        self.assertEqual(_flag("exiftool_flag"), "--exiftool")
 
 
 if __name__ == "__main__":
