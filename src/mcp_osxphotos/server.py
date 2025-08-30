@@ -444,6 +444,39 @@ def batch_edit(
     return run_osxphotos_command(cmd)
 
 @mcp.tool()
+def osxphotos_batch_edit(
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    keyword: Optional[List[str]] = None,
+    replace_keywords: bool = False,
+    location: Optional[List[float]] = None,
+    album: Optional[List[str]] = None,
+    split_folder: Optional[str] = None,
+    dry_run: bool = False,
+    undo: bool = False,
+    verbose: bool = False,
+    timestamp: bool = False,
+    theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
+    library: Optional[str] = None,
+) -> str:
+    """Alias for batch_edit for clients that expect a prefixed tool name."""
+    return batch_edit(
+        title=title,
+        description=description,
+        keyword=keyword,
+        replace_keywords=replace_keywords,
+        location=location,
+        album=album,
+        split_folder=split_folder,
+        dry_run=dry_run,
+        undo=undo,
+        verbose=verbose,
+        timestamp=timestamp,
+        theme=theme,
+        library=library,
+    )
+
+@mcp.tool()
 def compare(
     library_a: str,
     library_b: str,

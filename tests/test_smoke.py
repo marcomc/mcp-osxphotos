@@ -31,6 +31,13 @@ class SmokeTests(unittest.TestCase):
         if data['found']:
             self.assertTrue(os.path.exists(data['path']))
 
+    def test_osxphotos_batch_edit_alias_exists(self):
+        # Should be invocable without raising; dry-run to avoid side effects
+        out = server.osxphotos_batch_edit(dry_run=True, keyword=["animal"])  # type: ignore[attr-defined]
+        # The command might fail at runtime if osxphotos isn't installed; that's OK.
+        # We only assert that the function exists and returns a string.
+        self.assertIsInstance(out, str)
+
 
 if __name__ == '__main__':
     unittest.main()
