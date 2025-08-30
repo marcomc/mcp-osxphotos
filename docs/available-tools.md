@@ -10,6 +10,35 @@ Guidance for AI/tooling consumers:
 - exiftool_flag (bool) maps to CLI flag --exiftool.
 - For pair/triple multi-argument options, provide list-of-objects with explicit keys (no tuples), e.g. regex: [{pattern, template}], exif: [{tag, value}], field: [{field, template}], xattr_template: [{attribute, template}], post_command: [{category, command}], sidecar_template: [{mako_template, filename_template, options}].
 
+Common shapes (copy/paste):
+
+```json
+{
+  "regex": [
+    { "pattern": "^IMG_\\d+", "template": "{name}" }
+  ],
+  "exif": [
+    { "tag": "Make", "value": "Apple" }
+  ],
+  "field": [
+    { "field": "uuid", "template": "{uuid}" }
+  ],
+  "xattr_template": [
+    { "attribute": "com.example.tag", "template": "{album}" }
+  ],
+  "post_command": [
+    { "category": "photo", "command": "echo {filepath}" }
+  ],
+  "sidecar_template": [
+    {
+      "mako_template": "/path/to/template.mako",
+      "filename_template": "{name}.json",
+      "options": "--indent 2"
+    }
+  ]
+}
+```
+
 Common mistakes to avoid:
 - Do not pass field as a single-token list (e.g., field=["uuid"]). Always use object-form pairs: [{field: FIELD, template: TEMPLATE}]. Example: field=[{field: "uuid", template: "{uuid}"}].
 - Use label (singular), not labels. It accepts multiple values.
