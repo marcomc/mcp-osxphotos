@@ -33,7 +33,6 @@ class TestSchemaShapes(unittest.TestCase):
             hints = get_type_hints(fn)
             for name, t in hints.items():
                 if name in {"regex", "exif", "field", "xattr_template", "post_command", "sidecar_template"}:
-                    # We expect List[TypedDict] style; no Tuple in the repr
                     rep = repr(t)
                     self.assertNotIn("Tuple", rep, f"{fn.__name__}.{name} should not be a Tuple-based type: {rep}")
 
@@ -64,6 +63,27 @@ class TestSchemaShapes(unittest.TestCase):
         self.assertEqual(cmd, [
             "--sidecar-template", "t.mako", "{name}.json", "--foo=1",
         ])
+
+    def test_schema_uses_list_of_dict_str(self):
+        """Ensure annotations are List[Dict[str, str]] for multi-arg parameters (not plain List or untyped Dict)."""
+        target_params = {"regex", "exif", "field", "xattr_template", "post_command", "sidecar_template"}
+        funcs = [
+            server.add_locations,
+            server.dump,
+            server.export_photos,
+            server.push_exif,
+            server.query_photos,
+            server.sync,
+        ]
+        for fn in funcs:
+            hints = get_type_hints(fn)
+            for name in (target_params & set(hints.keys())):
+                ann = hints[name]
+                rep = repr(ann)
+                # Check the shape indicates List[Dict[str, str]]
+                self.assertIn("List", rep, f"{fn.__name__}.{name} should be a List[...] type: {rep}")
+                self.assertIn("Dict", rep, f"{fn.__name__}.{name} should be a List[Dict[...]] type: {rep}")
+                self.assertIn("str", rep, f"{fn.__name__}.{name} should be Dict[str, str] value type: {rep}")
 
 
 if __name__ == "__main__":

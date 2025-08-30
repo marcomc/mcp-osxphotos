@@ -3,7 +3,7 @@ import sys
 import shutil
 import subprocess
 import json
-from typing import List, Optional, Literal, Tuple, TypedDict, Dict, Any
+from typing import List, Optional, Literal, Tuple, Dict, Any
 
 # Make python-dotenv optional so missing dev deps don't crash discovery in GUI clients
 try:
@@ -70,35 +70,8 @@ def _flag(name: str) -> str:
     return f"--{name.replace('_', '-')}"
 
 
-class RegexPair(TypedDict):
-    pattern: str
-    template: str
-
-
-class ExifPair(TypedDict):
-    tag: str
-    value: str
-
-
-class FieldPair(TypedDict):
-    field: str
-    template: str
-
-
-class XattrTemplatePair(TypedDict):
-    attribute: str
-    template: str
-
-
-class PostCommandPair(TypedDict):
-    category: str
-    command: str
-
-
-class SidecarTemplateTriple(TypedDict):
-    mako_template: str
-    filename_template: str
-    options: str
+# Note: For MCP schema compatibility, avoid Tuple[...] and TypedDict in public tool
+# parameter annotations. Use List[Dict[str, str]] for pair- or triple-shaped values.
 
 
 # Map option names to expected dict keys (order matters)
@@ -124,6 +97,32 @@ def _append_multi_arg_pairs(cmd: List[str], name: str, value: List[str | List[st
     if isinstance(value, list) and value and isinstance(value[0], (list, tuple)):
         for pair in value:  # type: ignore[assignment]
             if len(pair) != 2:  # type: ignore[arg-type]
+                # Tailored guidance for known pair-style options
+                if name == "field":
+                    raise ValueError(
+                        "Option 'field' requires pairs [FIELD, TEMPLATE] or object form "
+                        "[{field: FIELD, template: TEMPLATE}]; got invalid pair length"
+                    )
+                if name == "regex":
+                    raise ValueError(
+                        "Option 'regex' requires pairs [REGEX, TEMPLATE] or object form "
+                        "[{pattern: REGEX, template: TEMPLATE}]; got invalid pair length"
+                    )
+                if name == "exif":
+                    raise ValueError(
+                        "Option 'exif' requires pairs [EXIF_TAG, VALUE] or object form "
+                        "[{tag: EXIF_TAG, value: VALUE}]; got invalid pair length"
+                    )
+                if name == "xattr_template":
+                    raise ValueError(
+                        "Option 'xattr_template' requires pairs [ATTRIBUTE, TEMPLATE] or object form "
+                        "[{attribute: ATTRIBUTE, template: TEMPLATE}]; got invalid pair length"
+                    )
+                if name == "post_command":
+                    raise ValueError(
+                        "Option 'post_command' requires pairs [CATEGORY, COMMAND] or object form "
+                        "[{category: CATEGORY, command: COMMAND}]; got invalid pair length"
+                    )
                 raise ValueError(f"Option '{name}' requires pairs of two arguments, got: {pair}")
             cmd.extend([_flag(name), str(pair[0]), str(pair[1])])  # type: ignore[index]
         return
@@ -143,7 +142,34 @@ def _append_multi_arg_pairs(cmd: List[str], name: str, value: List[str | List[st
     # Otherwise expect a flat list with even length
     flat = [str(v) for v in value]  # type: ignore[list-item]
     if len(flat) % 2 != 0:
-        raise ValueError(f"Option '{name}' requires an even number of arguments (pairs), got {len(flat)}")
+        if name == "field":
+            raise ValueError(
+                "Option 'field' requires pairs [FIELD, TEMPLATE] or object form "
+                "[{field: FIELD, template: TEMPLATE}]; got odd-length list"
+            )
+        if name == "regex":
+            raise ValueError(
+                "Option 'regex' requires pairs [REGEX, TEMPLATE] or object form "
+                "[{pattern: REGEX, template: TEMPLATE}]; got odd-length list"
+            )
+        if name == "exif":
+            raise ValueError(
+                "Option 'exif' requires pairs [EXIF_TAG, VALUE] or object form "
+                "[{tag: EXIF_TAG, value: VALUE}]; got odd-length list"
+            )
+        if name == "xattr_template":
+            raise ValueError(
+                "Option 'xattr_template' requires pairs [ATTRIBUTE, TEMPLATE] or object form "
+                "[{attribute: ATTRIBUTE, template: TEMPLATE}]; got odd-length list"
+            )
+        if name == "post_command":
+            raise ValueError(
+                "Option 'post_command' requires pairs [CATEGORY, COMMAND] or object form "
+                "[{category: CATEGORY, command: COMMAND}]; got odd-length list"
+            )
+        raise ValueError(
+            f"Option '{name}' requires an even number of arguments (pairs), got {len(flat)}"
+        )
     for i in range(0, len(flat), 2):
         cmd.extend([_flag(name), flat[i], flat[i + 1]])
 
@@ -175,6 +201,12 @@ def _append_multi_arg_group(
     if isinstance(value, list) and value and isinstance(value[0], (list, tuple)):
         for group in value:  # type: ignore[assignment]
             if len(group) != arity:  # type: ignore[arg-type]
+                if name == "sidecar_template" and arity == 3:
+                    raise ValueError(
+                        "Option 'sidecar_template' requires triples [MAKO_TEMPLATE_FILE, SIDECAR_FILENAME_TEMPLATE, OPTIONS] "
+                        "or object form [{mako_template: MAKO_TEMPLATE_FILE, filename_template: SIDECAR_FILENAME_TEMPLATE, options: OPTIONS}]; "
+                        f"got invalid group length ({len(group)})"
+                    )
                 raise ValueError(
                     f"Option '{name}' requires groups of {arity} arguments, got: {group}"
                 )
@@ -190,7 +222,10 @@ def _append_multi_arg_group(
         for obj in value:  # type: ignore[assignment]
             missing = [k for k in keys if k not in obj]  # type: ignore[arg-type]
             if missing:
-                raise ValueError(f"Option '{name}' missing keys: {missing}")
+                raise ValueError(
+                    "Option 'sidecar_template' object form requires keys {mako_template, filename_template, options}; "
+                    f"missing keys: {missing}"
+                )
             cmd.append(_flag(name))
             cmd.extend([str(obj[k]) for k in keys])  # type: ignore[index]
         return
@@ -327,9 +362,9 @@ def add_locations(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[RegexPair]] = None,
+    regex: Optional[List[Dict[str, str]]] = None,
     selected: bool = False,
-    exif: Optional[List[ExifPair]] = None,
+    exif: Optional[List[Dict[str, str]]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
@@ -436,7 +471,7 @@ def dump(
     json: bool = False,
     deleted_only: bool = False,
     deleted: bool = False,
-    field: Optional[List[FieldPair]] = None,
+    field: Optional[List[Dict[str, str]]] = None,
     print_template: Optional[List[str]] = None,
 ) -> str:
     """DEPRECATED: Print list of all photos & associated info from the Photos library. Use query instead."""
@@ -589,9 +624,9 @@ def export_photos(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[RegexPair]] = None,
+    regex: Optional[List[Dict[str, str]]] = None,
     selected: bool = False,
-    exif: Optional[List[ExifPair]] = None,
+    exif: Optional[List[Dict[str, str]]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     deleted_only: bool = False,
@@ -626,7 +661,7 @@ def export_photos(
     export_aae: bool = False,
     sidecar: Optional[Literal['xmp', 'json', 'exiftool']] = None,
     sidecar_drop_ext: bool = False,
-    sidecar_template: Optional[List[SidecarTemplateTriple]] = None,
+    sidecar_template: Optional[List[Dict[str, str]]] = None,
     exiftool_flag: bool = False,
     exiftool_path: Optional[str] = None,
     exiftool_option: Optional[List[str]] = None,
@@ -641,7 +676,7 @@ def export_photos(
     description_template: Optional[str] = None,
     finder_tag_template: Optional[List[str]] = None,
     finder_tag_keywords: bool = False,
-    xattr_template: Optional[List[XattrTemplatePair]] = None,
+    xattr_template: Optional[List[Dict[str, str]]] = None,
     directory: Optional[str] = None,
     filename: Optional[str] = None,
     jpeg_ext: Optional[str] = None,
@@ -657,7 +692,7 @@ def export_photos(
     add_exported_to_album: Optional[str] = None,
     add_skipped_to_album: Optional[str] = None,
     add_missing_to_album: Optional[str] = None,
-    post_command: Optional[List[PostCommandPair]] = None,
+    post_command: Optional[List[Dict[str, str]]] = None,
     post_command_error: Optional[Literal['continue', 'break']] = None,
     post_function: Optional[List[str]] = None,
     exportdb: Optional[str] = None,
@@ -1048,9 +1083,9 @@ def push_exif(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[RegexPair]] = None,
+    regex: Optional[List[Dict[str, str]]] = None,
     selected: bool = False,
-    exif: Optional[List[ExifPair]] = None,
+    exif: Optional[List[Dict[str, str]]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
 ) -> str:
@@ -1162,16 +1197,16 @@ def query_photos(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[RegexPair]] = None,
+    regex: Optional[List[Dict[str, str]]] = None,
     selected: bool = False,
-    exif: Optional[List[ExifPair]] = None,
+    exif: Optional[List[Dict[str, str]]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     deleted_only: bool = False,
     deleted: bool = False,
     add_to_album: Optional[str] = None,
     quiet: bool = False,
-    field: Optional[List[FieldPair]] = None,
+    field: Optional[List[Dict[str, str]]] = None,
     print_template: Optional[List[str]] = None,
     mute: bool = False,
 ) -> str:
@@ -1182,18 +1217,6 @@ def query_photos(
             continue
         if value:
             if key in {"field", "regex", "exif"}:
-                # Convenience: allow a single --field NAME to imply --field NAME "{NAME}"
-                # The upstream osxphotos CLI requires --field FIELD TEMPLATE pairs.
-                if key == "field" and isinstance(value, list) and value and not isinstance(value[0], (list, tuple)):
-                    flat = [str(v) for v in value]
-                    if len(flat) % 2 != 0:
-                        # Only auto-fix the simple case of a single field token
-                        if len(flat) == 1:
-                            name = flat[0]
-                            value = [name, f"{{{name}}}"]
-                        else:
-                            # Defer to standard pair validation which will raise a clear error
-                            pass
                 _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
             elif isinstance(value, bool):
                 cmd.append(_flag(key))
@@ -1306,9 +1329,9 @@ def sync(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[RegexPair]] = None,
+    regex: Optional[List[Dict[str, str]]] = None,
     selected: bool = False,
-    exif: Optional[List[ExifPair]] = None,
+    exif: Optional[List[Dict[str, str]]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     library: Optional[str] = None,

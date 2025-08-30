@@ -92,6 +92,70 @@ class TestArgBuilders(unittest.TestCase):
         with self.assertRaises(ValueError):
             _append_location_pair([], "location", "10,20")  # type: ignore[arg-type]
 
+    def test_field_single_flat_token_raises(self):
+        with self.assertRaises(ValueError):
+            _append_multi_arg_pairs([], "field", ["uuid"])  # type: ignore[arg-type]
+
+    def test_field_odd_length_flat_list_message(self):
+        try:
+            _append_multi_arg_pairs([], "field", ["uuid"])  # type: ignore[arg-type]
+            self.fail("Expected ValueError for odd-length 'field' flat list")
+        except ValueError as e:
+            msg = str(e)
+            self.assertIn("object form", msg)
+            self.assertIn("FIELD", msg)
+            self.assertIn("TEMPLATE", msg)
+
+    def test_regex_odd_length_flat_list_message(self):
+        with self.assertRaises(ValueError) as cm:
+            _append_multi_arg_pairs([], "regex", ["a"])  # type: ignore[arg-type]
+        msg = str(cm.exception)
+        self.assertIn("object form", msg)
+        self.assertIn("REGEX", msg)
+        self.assertIn("TEMPLATE", msg)
+
+    def test_exif_odd_length_flat_list_message(self):
+        with self.assertRaises(ValueError) as cm:
+            _append_multi_arg_pairs([], "exif", ["Make"])  # type: ignore[arg-type]
+        msg = str(cm.exception)
+        self.assertIn("object form", msg)
+        self.assertIn("EXIF_TAG", msg)
+        self.assertIn("VALUE", msg)
+
+    def test_xattr_template_odd_length_flat_list_message(self):
+        with self.assertRaises(ValueError) as cm:
+            _append_multi_arg_pairs([], "xattr_template", ["com.example"])  # type: ignore[arg-type]
+        msg = str(cm.exception)
+        self.assertIn("object form", msg)
+        self.assertIn("ATTRIBUTE", msg)
+        self.assertIn("TEMPLATE", msg)
+
+    def test_post_command_odd_length_flat_list_message(self):
+        with self.assertRaises(ValueError) as cm:
+            _append_multi_arg_pairs([], "post_command", ["exported"])  # type: ignore[arg-type]
+        msg = str(cm.exception)
+        self.assertIn("object form", msg)
+        self.assertIn("CATEGORY", msg)
+        self.assertIn("COMMAND", msg)
+
+    def test_sidecar_template_wrong_group_size_message(self):
+        with self.assertRaises(ValueError) as cm:
+            _append_multi_arg_group([], "sidecar_template", [["t.mako", "{name}.json"]], 3)  # type: ignore[arg-type]
+        msg = str(cm.exception)
+        self.assertIn("object form", msg)
+        self.assertIn("MAKO_TEMPLATE_FILE", msg)
+        self.assertIn("SIDECAR_FILENAME_TEMPLATE", msg)
+        self.assertIn("OPTIONS", msg)
+
+    def test_sidecar_template_object_missing_keys_message(self):
+        with self.assertRaises(ValueError) as cm:
+            _append_multi_arg_group([], "sidecar_template", [{"mako_template": "t.mako"}], 3)  # type: ignore[arg-type]
+        msg = str(cm.exception)
+        self.assertIn("object form", msg)
+        self.assertIn("mako_template", msg)
+        self.assertIn("filename_template", msg)
+        self.assertIn("options", msg)
+
 
 if __name__ == "__main__":
     unittest.main()
