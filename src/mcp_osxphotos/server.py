@@ -3,7 +3,7 @@ import sys
 import shutil
 import subprocess
 import json
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Tuple
 
 # Make python-dotenv optional so missing dev deps don't crash discovery in GUI clients
 try:
@@ -95,14 +95,14 @@ def _append_multi_arg_pairs(cmd: List[str], name: str, value: List[str | List[st
         cmd.extend([_flag(name), flat[i], flat[i + 1]])
 
 
-def _append_location_pair(cmd: List[str], name: str, value: Optional[List[float]]) -> bool:
+def _append_location_pair(cmd: List[str], name: str, value: Optional[Tuple[float, float] | List[float]]) -> bool:
     """Append a '--location LAT LON' style option.
 
     Returns True if handled, False otherwise.
     """
     if value is None:
         return False
-    if not isinstance(value, list) or len(value) != 2:
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
         raise ValueError(f"Option '{name}' requires exactly two values: [LATITUDE, LONGITUDE]")
     lat, lon = value
     cmd.extend([_flag(name), str(lat), str(lon)])
@@ -261,9 +261,9 @@ def add_locations(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[str]] = None,
+    regex: Optional[List[Tuple[str, str]]] = None,
     selected: bool = False,
-    exif: Optional[List[str]] = None,
+    exif: Optional[List[Tuple[str, str]]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
@@ -271,6 +271,8 @@ def add_locations(
     """Add missing location data to photos in Photos.app using nearest neighbor."""
     cmd = ["osxphotos", "add-locations"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if key in {"regex", "exif"}:
                 _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
@@ -315,6 +317,8 @@ def batch_edit(
     """Batch edit photo metadata such as title, description, keywords, etc."""
     cmd = ["osxphotos", "batch-edit"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if key == "location":
                 handled = _append_location_pair(cmd, key, value)  # type: ignore[arg-type]
@@ -346,6 +350,8 @@ def compare(
     for key, value in locals().items():
         if key in ['library_a', 'library_b']:
             continue
+        if key == "cmd":
+            continue
         if value:
             if isinstance(value, bool):
                 cmd.append(f"--{key.replace('_', '-')}")
@@ -364,12 +370,14 @@ def dump(
     json: bool = False,
     deleted_only: bool = False,
     deleted: bool = False,
-    field: Optional[List[str]] = None,
+    field: Optional[List[Tuple[str, str]]] = None,
     print_template: Optional[List[str]] = None,
 ) -> str:
     """DEPRECATED: Print list of all photos & associated info from the Photos library. Use query instead."""
     cmd = ["osxphotos", "dump"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if key == "field":
                 _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
@@ -411,6 +419,8 @@ def exiftool(
     cmd = ["osxphotos", "exiftool", export_directory]
     for key, value in locals().items():
         if key == 'export_directory':
+            continue
+        if key == "cmd":
             continue
         if value:
             if isinstance(value, bool):
@@ -513,9 +523,9 @@ def export_photos(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[str]] = None,
+    regex: Optional[List[Tuple[str, str]]] = None,
     selected: bool = False,
-    exif: Optional[List[str]] = None,
+    exif: Optional[List[Tuple[str, str]]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     deleted_only: bool = False,
@@ -550,7 +560,7 @@ def export_photos(
     export_aae: bool = False,
     sidecar: Optional[Literal['xmp', 'json', 'exiftool']] = None,
     sidecar_drop_ext: bool = False,
-    sidecar_template: Optional[List[str]] = None,
+    sidecar_template: Optional[List[Tuple[str, str, str]]] = None,
     exiftool_flag: bool = False,
     exiftool_path: Optional[str] = None,
     exiftool_option: Optional[List[str]] = None,
@@ -565,7 +575,7 @@ def export_photos(
     description_template: Optional[str] = None,
     finder_tag_template: Optional[List[str]] = None,
     finder_tag_keywords: bool = False,
-    xattr_template: Optional[List[str]] = None,
+    xattr_template: Optional[List[Tuple[str, str]]] = None,
     directory: Optional[str] = None,
     filename: Optional[str] = None,
     jpeg_ext: Optional[str] = None,
@@ -581,7 +591,7 @@ def export_photos(
     add_exported_to_album: Optional[str] = None,
     add_skipped_to_album: Optional[str] = None,
     add_missing_to_album: Optional[str] = None,
-    post_command: Optional[List[str]] = None,
+    post_command: Optional[List[Tuple[str, str]]] = None,
     post_command_error: Optional[Literal['continue', 'break']] = None,
     post_function: Optional[List[str]] = None,
     exportdb: Optional[str] = None,
@@ -602,6 +612,8 @@ def export_photos(
     cmd = ["osxphotos", "export", dest]
     for key, value in locals().items():
         if key == 'dest':
+            continue
+        if key == "cmd":
             continue
         if value:
             if key in {"xattr_template", "post_command", "regex", "exif"}:
@@ -656,6 +668,8 @@ def exportdb(
     cmd = ["osxphotos", "exportdb", export_database]
     for key, value in locals().items():
         if key == 'export_database':
+            continue
+        if key == "cmd":
             continue
         if value:
             if isinstance(value, bool):
@@ -729,6 +743,8 @@ def import_photos(
     for key, value in locals().items():
         if key == 'files_or_dirs':
             continue
+        if key == "cmd":
+            continue
         if value:
             if key == "location":
                 handled = _append_location_pair(cmd, key, value)  # type: ignore[arg-type]
@@ -752,6 +768,8 @@ def info(
     """Print out descriptive info of the Photos library database."""
     cmd = ["osxphotos", "info"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if isinstance(value, bool):
                 cmd.append(f"--{key.replace('_', '-')}")
@@ -767,6 +785,8 @@ def keywords(
     """Print out keywords found in the Photos library."""
     cmd = ["osxphotos", "keywords"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if isinstance(value, bool):
                 cmd.append(f"--{key.replace('_', '-')}")
@@ -782,6 +802,8 @@ def labels(
     """Print out image classification labels found in the Photos library."""
     cmd = ["osxphotos", "labels"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if isinstance(value, bool):
                 cmd.append(f"--{key.replace('_', '-')}")
@@ -810,6 +832,8 @@ def orphans(
     """Find orphaned photos in a Photos library."""
     cmd = ["osxphotos", "orphans"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if isinstance(value, bool):
                 cmd.append(f"--{key.replace('_', '-')}")
@@ -825,6 +849,8 @@ def persons(
     """Print out persons (faces) found in the Photos library."""
     cmd = ["osxphotos", "persons"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if isinstance(value, bool):
                 cmd.append(f"--{key.replace('_', '-')}")
@@ -840,6 +866,8 @@ def places(
     """Print out places found in the Photos library."""
     cmd = ["osxphotos", "places"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if isinstance(value, bool):
                 cmd.append(f"--{key.replace('_', '-')}")
@@ -954,9 +982,9 @@ def push_exif(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[str]] = None,
+    regex: Optional[List[Tuple[str, str]]] = None,
     selected: bool = False,
-    exif: Optional[List[str]] = None,
+    exif: Optional[List[Tuple[str, str]]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
 ) -> str:
@@ -964,6 +992,8 @@ def push_exif(
     cmd = ["osxphotos", "push-exif", metadata]
     for key, value in locals().items():
         if key == 'metadata':
+            continue
+        if key == "cmd":
             continue
         if value:
             if key in {"regex", "exif"}:
@@ -1066,24 +1096,38 @@ def query_photos(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[str]] = None,
+    regex: Optional[List[Tuple[str, str]]] = None,
     selected: bool = False,
-    exif: Optional[List[str]] = None,
+    exif: Optional[List[Tuple[str, str]]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     deleted_only: bool = False,
     deleted: bool = False,
     add_to_album: Optional[str] = None,
     quiet: bool = False,
-    field: Optional[List[str]] = None,
+    field: Optional[List[Tuple[str, str]]] = None,
     print_template: Optional[List[str]] = None,
     mute: bool = False,
 ) -> str:
     """Query the Photos database using 1 or more search options."""
     cmd = ["osxphotos", "query"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if key in {"field", "regex", "exif"}:
+                # Convenience: allow a single --field NAME to imply --field NAME "{NAME}"
+                # The upstream osxphotos CLI requires --field FIELD TEMPLATE pairs.
+                if key == "field" and isinstance(value, list) and value and not isinstance(value[0], (list, tuple)):
+                    flat = [str(v) for v in value]
+                    if len(flat) % 2 != 0:
+                        # Only auto-fix the simple case of a single field token
+                        if len(flat) == 1:
+                            name = flat[0]
+                            value = [name, f"{{{name}}}"]
+                        else:
+                            # Defer to standard pair validation which will raise a clear error
+                            pass
                 _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
             elif isinstance(value, bool):
                 cmd.append(_flag(key))
@@ -1196,9 +1240,9 @@ def sync(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[str]] = None,
+    regex: Optional[List[Tuple[str, str]]] = None,
     selected: bool = False,
-    exif: Optional[List[str]] = None,
+    exif: Optional[List[Tuple[str, str]]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     library: Optional[str] = None,
@@ -1207,6 +1251,8 @@ def sync(
     """Sync metadata and albums between Photos libraries."""
     cmd = ["osxphotos", "sync"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if key in {"regex", "exif"}:
                 _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
@@ -1251,6 +1297,8 @@ def timewarp(
     """Adjust date/time/timezone of photos in Apple Photos."""
     cmd = ["osxphotos", "timewarp"]
     for key, value in locals().items():
+        if key == "cmd":
+            continue
         if value:
             if isinstance(value, bool):
                 cmd.append(f"--{key.replace('_', '-')}")

@@ -108,16 +108,16 @@ Parameters:
 - `not_shared_moment` (bool): Search for photos that are not part of a shared moment.
 - `shared_library` (bool): Search for photos that are part of a shared library.
 - `not_shared_library` (bool): Search for photos that are not part of a shared library.
-- `regex` (Optional[List[str]]): Search for photos where REGEX matches on TEMPLATE.
+- `regex` (Optional[List[Tuple[str, str]]]): Search for photos where REGEX matches on TEMPLATE. Provide as list of pairs: [(REGEX, TEMPLATE), ...].
 - `selected` (bool): Filter for photos that are currently selected in Photos.
-- `exif` (Optional[List[str]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE.
+- `exif` (Optional[List[Tuple[str, str]]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE. Provide as list of pairs: [(EXIF_TAG, VALUE), ...].
 - `query_eval` (Optional[List[str]]): Evaluate CRITERIA to filter photos.
 - `query_function` (Optional[List[str]]): Run function to filter photos.
 - `theme` (Optional[Literal['dark', 'light', 'mono', 'plain']]): Specify the color theme to use for output.
   
-Note: The following options take pairs per occurrence and may be provided as a flat list [A, B, ...] or list of pairs [[A, B], ...]:
-  - `regex`: REGEX TEMPLATE
-  - `exif`: EXIF_TAG VALUE
+Note: In this MCP, multi-argument options are strongly typed and must be provided as list-of-pairs:
+  - `regex`: List[Tuple[REGEX, TEMPLATE]]
+  - `exif`: List[Tuple[EXIF_TAG, VALUE]]
 
 ## `albums`
 
@@ -190,7 +190,7 @@ Parameters:
 - `json` (bool): Print output in JSON format.
 - `deleted_only` (bool): Include only photos from the 'Recently Deleted' folder.
 - `deleted` (bool): Include photos from the 'Recently Deleted' folder.
-- `field` (Optional[List[str]]): Output only specified custom fields. Takes pairs per occurrence: FIELD TEMPLATE. Pass as [FIELD, TEMPLATE, ...] or [[FIELD, TEMPLATE], ...].
+- `field` (Optional[List[Tuple[str, str]]]): Output only specified custom fields. Each item must be a pair [FIELD, TEMPLATE].
 - `print_template` (Optional[List[str]]): Render TEMPLATE string for each photo queried and print to stdout.
 
 ## `exiftool`
@@ -232,13 +232,9 @@ Invokes the `osxphotos export` command.
 
 Notes on multi-argument options:
 
-- The following options take pairs per occurrence and may be provided as a flat list [A, B, ...] or list of pairs [[A, B], ...]:
-  - `regex`: REGEX TEMPLATE
-  - `exif`: EXIF_TAG VALUE
-  - `xattr_template`: ATTRIBUTE TEMPLATE
-  - `post_command`: CATEGORY COMMAND
-- The following option takes triples per occurrence and may be provided as a flat list [A, B, C, ...] or list of triples [[A, B, C], ...]:
-  - `sidecar_template`: MAKO_TEMPLATE_FILE SIDECAR_FILENAME_TEMPLATE OPTIONS
+- Strong typing: provide tuples, not flat lists.
+  - Pairs (List[Tuple[str, str]]): `regex` (REGEX, TEMPLATE), `exif` (EXIF_TAG, VALUE), `xattr_template` (ATTRIBUTE, TEMPLATE), `post_command` (CATEGORY, COMMAND)
+  - Triples (List[Tuple[str, str, str]]): `sidecar_template` (MAKO_TEMPLATE_FILE, SIDECAR_FILENAME_TEMPLATE, OPTIONS)
 
 Parameters:
 
@@ -331,9 +327,9 @@ Parameters:
 - `not_shared_moment` (bool): Search for photos that are not part of a shared moment.
 - `shared_library` (bool): Search for photos that are part of a shared library.
 - `not_shared_library` (bool): Search for photos that are not part of a shared library.
-- `regex` (Optional[List[str]]): Search for photos where TEMPLATE matches regular expression REGEX. Usage: --regex REGEX TEMPLATE.
+- `regex` (Optional[List[Tuple[str, str]]]): Search for photos where REGEX matches on TEMPLATE. Provide as list of pairs: [(REGEX, TEMPLATE), ...].
 - `selected` (bool): Filter for photos that are currently selected in Photos.
-- `exif` (Optional[List[str]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE.
+- `exif` (Optional[List[Tuple[str, str]]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE. Provide as list of pairs: [(EXIF_TAG, VALUE), ...].
 - `query_eval` (Optional[List[str]]): Evaluate CRITERIA to filter photos.
 - `query_function` (Optional[List[str]]): Run function to filter photos.
 - `deleted_only` (bool): Include only photos from the 'Recently Deleted' folder.
@@ -368,7 +364,7 @@ Parameters:
 - `export_aae` (bool): Also export an adjustments file detailing edits made to the original.
 - `sidecar` (Optional[Literal['xmp', 'json', 'exiftool']]): Create sidecar for each photo exported.
 - `sidecar_drop_ext` (bool): Drop the photo's extension when naming sidecar files.
-- `sidecar_template` (Optional[List[str]]): Create a custom sidecar file for each photo exported with user provided Mako template.
+- `sidecar_template` (Optional[List[Tuple[str, str, str]]]): Create a custom sidecar file for each photo exported with user provided Mako template. Provide as list of triples: [(MAKO_TEMPLATE_FILE, SIDECAR_FILENAME_TEMPLATE, OPTIONS), ...].
 - `exiftool_flag` (bool): Use exiftool to write metadata directly to exported photos.
 - `exiftool_path` (Optional[str]): Optionally specify path to exiftool.
 - `exiftool_option` (Optional[List[str]]): Optional flag/option to pass to exiftool.
@@ -383,7 +379,7 @@ Parameters:
 - `description_template` (Optional[str]): Specify a template string to use as description.
 - `finder_tag_template` (Optional[List[str]]): Set MacOS Finder tags to TEMPLATE.
 - `finder_tag_keywords` (bool): Set MacOS Finder tags to keywords.
-- `xattr_template` (Optional[List[str]]): Set extended attribute ATTRIBUTE to TEMPLATE value.
+- `xattr_template` (Optional[List[Tuple[str, str]]]): Set extended attribute ATTRIBUTE to TEMPLATE value. Provide as list of pairs: [(ATTRIBUTE, TEMPLATE), ...].
 
 - `directory` (Optional[str]): Optional template for specifying name of output directory.
 - `filename` (Optional[str]): Optional template for specifying name of output file.
@@ -400,7 +396,7 @@ Parameters:
 - `add_exported_to_album` (Optional[str]): Add all exported photos to album ALBUM in Photos.
 - `add_skipped_to_album` (Optional[str]): Add all skipped photos to album ALBUM in Photos.
 - `add_missing_to_album` (Optional[str]): Add all missing photos to album ALBUM in Photos.
-- `post_command` (Optional[List[str]]): Run COMMAND on exported files of category CATEGORY.
+- `post_command` (Optional[List[Tuple[str, str]]]): Run COMMAND on exported files of category CATEGORY. Provide as list of pairs: [(CATEGORY, COMMAND), ...].
 
 - `post_command_error` (Optional[Literal['continue', 'break']]): Specify either 'continue' or 'break' for ACTION to control behavior when a post-command fails.
 - `post_function` (Optional[List[str]]): Run function on exported files.
@@ -716,14 +712,14 @@ Parameters:
 - `not_shared_moment` (bool): Search for photos that are not part of a shared moment.
 - `shared_library` (bool): Search for photos that are part of a shared library.
 - `not_shared_library` (bool): Search for photos that are not part of a shared library.
-- `regex` (Optional[List[str]]): Search for photos where TEMPLATE matches regular expression REGEX.
+- `regex` (Optional[List[Tuple[str, str]]]): Search for photos where REGEX matches on TEMPLATE. Provide as list of pairs: [(REGEX, TEMPLATE), ...].
 - `selected` (bool): Filter for photos that are currently selected in Photos.
-- `exif` (Optional[List[str]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE.
+- `exif` (Optional[List[Tuple[str, str]]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE. Provide as list of pairs: [(EXIF_TAG, VALUE), ...].
 - `query_eval` (Optional[List[str]]): Evaluate CRITERIA to filter photos.
 - `query_function` (Optional[List[str]]): Run function to filter photos.
-Note: The following options take pairs per occurrence and may be provided as a flat list [A, B, ...] or list of pairs [[A, B], ...]:
-  - `regex`: REGEX TEMPLATE
-  - `exif`: EXIF_TAG VALUE
+Note: In this MCP, multi-argument options are strongly typed and must be provided as list-of-pairs:
+  - `regex`: List[Tuple[REGEX, TEMPLATE]]
+  - `exif`: List[Tuple[EXIF_TAG, VALUE]]
 
 ## `query_photos`
 
@@ -820,22 +816,23 @@ Parameters:
 - `not_shared_moment` (bool): Search for photos that are not part of a shared moment.
 - `shared_library` (bool): Search for photos that are part of a shared library.
 - `not_shared_library` (bool): Search for photos that are not part of a shared library.
-- `regex` (Optional[List[str]]): Search for photos where TEMPLATE matches regular expression REGEX.
+- `regex` (Optional[List[Tuple[str, str]]]): Search for photos where REGEX matches on TEMPLATE. Provide as list of pairs: [(REGEX, TEMPLATE), ...].
 - `selected` (bool): Filter for photos that are currently selected in Photos.
-- `exif` (Optional[List[str]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE.
+- `exif` (Optional[List[Tuple[str, str]]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE. Provide as list of pairs: [(EXIF_TAG, VALUE), ...].
 - `query_eval` (Optional[List[str]]): Evaluate CRITERIA to filter photos.
 - `query_function` (Optional[List[str]]): Run function to filter photos.
 - `deleted_only` (bool): Include only photos from the 'Recently Deleted' folder.
 - `deleted` (bool): Include photos from the 'Recently Deleted' folder.
 - `add_to_album` (Optional[str]): Add all photos from query to album ALBUM in Photos.
 - `quiet` (bool): Quiet output; doesn't actually print query results.
-- `field` (Optional[List[str]]): Output only specified custom fields. Takes pairs per occurrence: FIELD TEMPLATE. Pass as [FIELD, TEMPLATE, ...] or [[FIELD, TEMPLATE], ...].
+- `field` (Optional[List[Tuple[str, str]]]): Output only specified custom fields. Provide as list of pairs: [(FIELD, TEMPLATE), ...].
 - `print_template` (Optional[List[str]]): Render TEMPLATE string for each photo queried and print to stdout.
 - `mute` (bool): Mute status output while loading Photos library.
   
-Note: The following options take pairs per occurrence and may be provided as a flat list [A, B, ...] or list of pairs [[A, B], ...]:
-  - `regex`: REGEX TEMPLATE
-  - `exif`: EXIF_TAG VALUE
+Note: In this MCP, multi-argument options are strongly typed. You must provide list-of-pairs for:
+  - `regex`: List[Tuple[REGEX, TEMPLATE]]
+  - `exif`: List[Tuple[EXIF_TAG, VALUE]]
+  - `field`: List[Tuple[FIELD, TEMPLATE]]
 
 ## `show`
 
@@ -948,17 +945,17 @@ Parameters:
 - `not_shared_moment` (bool): Search for photos that are not part of a shared moment.
 - `shared_library` (bool): Search for photos that are part of a shared library.
 - `not_shared_library` (bool): Search for photos that are not part of a shared library.
-- `regex` (Optional[List[str]]): Search for photos where TEMPLATE matches regular expression REGEX.
+- `regex` (Optional[List[Tuple[str, str]]]): Search for photos where REGEX matches on TEMPLATE. Provide as list of pairs: [(REGEX, TEMPLATE), ...].
 - `selected` (bool): Filter for photos that are currently selected in Photos.
-- `exif` (Optional[List[str]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE.
+- `exif` (Optional[List[Tuple[str, str]]]): Search for photos where EXIF_TAG exists in photo's EXIF data and contains VALUE. Provide as list of pairs: [(EXIF_TAG, VALUE), ...].
 - `query_eval` (Optional[List[str]]): Evaluate CRITERIA to filter photos.
 - `query_function` (Optional[List[str]]): Run function to filter photos.
 - `library` (Optional[str]): Specify path to Photos library.
 - `theme` (Optional[Literal['dark', 'light', 'mono', 'plain']]): Specify the color theme to use for output.
   
-Note: The following options take pairs per occurrence and may be provided as a flat list [A, B, ...] or list of pairs [[A, B], ...]:
-  - `regex`: REGEX TEMPLATE
-  - `exif`: EXIF_TAG VALUE
+Note: In this MCP, multi-argument options are strongly typed and must be provided as list-of-pairs:
+  - `regex`: List[Tuple[REGEX, TEMPLATE]]
+  - `exif`: List[Tuple[EXIF_TAG, VALUE]]
 
 ## `timewarp`
 
