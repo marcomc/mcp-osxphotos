@@ -90,11 +90,10 @@ class TestSchemaShapes(unittest.TestCase):
         hints_query = get_type_hints(server.query_photos)
         for ann in (hints_dump.get("field"), hints_query.get("field")):
             rep = repr(ann)
+            # Now strictly List[Dict[str, str]] via Annotated metadata
             self.assertIn("List", rep)
             self.assertIn("Dict", rep)
-            # also allow List[str] and List[List[str]] in the union
-            self.assertTrue("List[str]" in rep or "typing.List[str]" in rep)
-            self.assertTrue("List[List[str]]" in rep or "typing.List[typing.List[str]]" in rep)
+            self.assertIn("str", rep)
             self.assertNotIn("Tuple", rep)
 
 

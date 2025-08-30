@@ -3,7 +3,7 @@ import sys
 import shutil
 import subprocess
 import json
-from typing import List, Optional, Literal, Tuple, Dict, Any, Union
+from typing import List, Optional, Literal, Tuple, Dict, Any, Union, Annotated
 
 # Make python-dotenv optional so missing dev deps don't crash discovery in GUI clients
 try:
@@ -371,14 +371,20 @@ def add_locations(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[Dict[str, str]]] = None,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template"]] = None,
     selected: bool = False,
-    exif: Optional[List[Dict[str, str]]] = None,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value"]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
 ) -> str:
-    """Add missing location data to photos in Photos.app using nearest neighbor."""
+    """Add missing location data to photos in Photos.app using nearest neighbor.
+
+    Notes for AI/tooling:
+    - Multi-arg options must be object-form lists:
+      - regex: [{pattern: REGEX, template: TEMPLATE}]
+      - exif:  [{tag: EXIF_TAG, value: VALUE}]
+    """
     cmd = ["osxphotos", "add-locations"]
     for key, value in locals().items():
         if key == "cmd":
@@ -482,10 +488,17 @@ def dump(
     json: bool = False,
     deleted_only: bool = False,
     deleted: bool = False,
-    field: Optional[Union[List[Dict[str, str]], List[str], List[List[str]]]] = None,
+    field: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: field, template"]] = None,
     print_template: Optional[List[str]] = None,
 ) -> str:
-    """DEPRECATED: Print list of all photos & associated info from the Photos library. Use query instead."""
+    """DEPRECATED: Print list of all photos & associated info from the Photos library. Use query instead.
+
+    Parameter guidance:
+    - field: list of objects only. Each object must include keys {field, template}.
+      Example: [{"field": "uuid", "template": "{uuid}"}]
+      Note: Flat lists like ["uuid"] are invalid and will be rejected by the schema.
+    - print_template: maps to --print (not --print-template).
+    """
     cmd = ["osxphotos", "dump"]
     for key, value in locals().items():
         if key == "cmd":
@@ -635,9 +648,9 @@ def export_photos(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[Dict[str, str]]] = None,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template"]] = None,
     selected: bool = False,
-    exif: Optional[List[Dict[str, str]]] = None,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value"]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     deleted_only: bool = False,
@@ -672,7 +685,7 @@ def export_photos(
     export_aae: bool = False,
     sidecar: Optional[Literal['xmp', 'json', 'exiftool']] = None,
     sidecar_drop_ext: bool = False,
-    sidecar_template: Optional[List[Dict[str, str]]] = None,
+    sidecar_template: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: mako_template, filename_template, options"]] = None,
     exiftool_flag: bool = False,
     exiftool_path: Optional[str] = None,
     exiftool_option: Optional[List[str]] = None,
@@ -687,7 +700,7 @@ def export_photos(
     description_template: Optional[str] = None,
     finder_tag_template: Optional[List[str]] = None,
     finder_tag_keywords: bool = False,
-    xattr_template: Optional[List[Dict[str, str]]] = None,
+    xattr_template: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: attribute, template"]] = None,
     directory: Optional[str] = None,
     filename: Optional[str] = None,
     jpeg_ext: Optional[str] = None,
@@ -703,7 +716,7 @@ def export_photos(
     add_exported_to_album: Optional[str] = None,
     add_skipped_to_album: Optional[str] = None,
     add_missing_to_album: Optional[str] = None,
-    post_command: Optional[List[Dict[str, str]]] = None,
+    post_command: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: category, command"]] = None,
     post_command_error: Optional[Literal['continue', 'break']] = None,
     post_function: Optional[List[str]] = None,
     exportdb: Optional[str] = None,
@@ -724,7 +737,13 @@ def export_photos(
 
     Notes for AI/tooling:
     - To filter by image classification labels, use 'label' (singular). It accepts multiple values.
-    - Example: label=["Welsh Terrier"].
+        - Example: label=["Welsh Terrier"].
+        - Multi-arg options must be object-form lists:
+            - regex: [{pattern: REGEX, template: TEMPLATE}]
+            - exif:  [{tag: EXIF_TAG, value: VALUE}]
+            - xattr_template: [{attribute: ATTRIBUTE, template: TEMPLATE}]
+            - post_command:   [{category: CATEGORY, command: COMMAND}]
+            - sidecar_template: [{mako_template: MAKO_TEMPLATE_FILE, filename_template: SIDECAR_FILENAME_TEMPLATE, options: OPTIONS}]
     """
     cmd = ["osxphotos", "export", dest]
     for key, value in locals().items():
@@ -1099,9 +1118,9 @@ def push_exif(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[Dict[str, str]]] = None,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template"]] = None,
     selected: bool = False,
-    exif: Optional[List[Dict[str, str]]] = None,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value"]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
 ) -> str:
@@ -1109,7 +1128,10 @@ def push_exif(
 
     Notes for AI/tooling:
     - For label-based filtering, use 'label' (singular). It accepts multiple values.
-    - Example: label=["Welsh Terrier"].
+        - Example: label=["Welsh Terrier"].
+        - Multi-arg options must be object-form lists:
+            - regex: [{pattern: REGEX, template: TEMPLATE}]
+            - exif:  [{tag: EXIF_TAG, value: VALUE}]
     """
     cmd = ["osxphotos", "push-exif", metadata]
     for key, value in locals().items():
@@ -1218,24 +1240,29 @@ def query_photos(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[Dict[str, str]]] = None,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template"]] = None,
     selected: bool = False,
-    exif: Optional[List[Dict[str, str]]] = None,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value"]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     deleted_only: bool = False,
     deleted: bool = False,
     add_to_album: Optional[str] = None,
     quiet: bool = False,
-    field: Optional[Union[List[Dict[str, str]], List[str], List[List[str]]]] = None,
+        field: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: field, template"]] = None,
     print_template: Optional[List[str]] = None,
     mute: bool = False,
 ) -> str:
     """Query the Photos database using 1 or more search options.
 
     Notes for AI/tooling:
-    - Use 'label' (singular) to filter by machine-learning labels. It accepts multiple values (List[str]).
-    - Example: label=["Welsh Terrier"].
+        - Use 'label' (singular) to filter by machine-learning labels. It accepts multiple values (List[str]). Example: label=["Welsh Terrier"].
+        - field: list of objects only. Each object must include keys {field, template}.
+            Example: [{"field": "uuid", "template": "{uuid}"}].
+            Anti-pattern: field=["uuid"] (invalid) — use object-form pairs instead.
+        - Multi-arg options must be object-form lists:
+            - regex: [{pattern: REGEX, template: TEMPLATE}]
+            - exif:  [{tag: EXIF_TAG, value: VALUE}]
     """
     cmd = ["osxphotos", "query"]
     for key, value in locals().items():
@@ -1355,9 +1382,9 @@ def sync(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[Dict[str, str]]] = None,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template"]] = None,
     selected: bool = False,
-    exif: Optional[List[Dict[str, str]]] = None,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value"]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     library: Optional[str] = None,
@@ -1367,7 +1394,10 @@ def sync(
 
     Notes for AI/tooling:
     - Use 'label' (singular) to filter by ML labels; it accepts multiple values.
-    - Example: label=["Welsh Terrier"].
+        - Example: label=["Welsh Terrier"].
+        - Multi-arg options must be object-form lists:
+            - regex: [{pattern: REGEX, template: TEMPLATE}]
+            - exif:  [{tag: EXIF_TAG, value: VALUE}]
     """
     cmd = ["osxphotos", "sync"]
     for key, value in locals().items():

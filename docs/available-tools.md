@@ -10,6 +10,10 @@ Guidance for AI/tooling consumers:
 - exiftool_flag (bool) maps to CLI flag --exiftool.
 - For pair/triple multi-argument options, provide list-of-objects with explicit keys (no tuples), e.g. regex: [{pattern, template}], exif: [{tag, value}], field: [{field, template}], xattr_template: [{attribute, template}], post_command: [{category, command}], sidecar_template: [{mako_template, filename_template, options}].
 
+Common mistakes to avoid:
+- Do not pass field as a single-token list (e.g., field=["uuid"]). Always use object-form pairs: [{field: FIELD, template: TEMPLATE}]. Example: field=[{field: "uuid", template: "{uuid}"}].
+- Use label (singular), not labels. It accepts multiple values.
+
 ## `about`
 
 Prints information about osxphotos including license.
@@ -196,7 +200,7 @@ Parameters:
 - `json` (bool): Print output in JSON format.
 - `deleted_only` (bool): Include only photos from the 'Recently Deleted' folder.
 - `deleted` (bool): Include photos from the 'Recently Deleted' folder.
-- `field` (Optional[List[{field: str, template: str}]]): Output only specified custom fields. Provide as list of objects: [{field: FIELD, template: TEMPLATE}, ...].
+- `field` (Optional[List[{field: str, template: str}]]): Output only specified custom fields. Provide as list of objects: [{field: FIELD, template: TEMPLATE}, ...]. Example: `[{field: "uuid", template: "{uuid}"}]`.
 - `print_template` (Optional[List[str]]): Render TEMPLATE string for each photo queried and print to stdout.
 
 ## `exiftool`
@@ -747,6 +751,7 @@ Invokes the `osxphotos query` command.
 
 Guidance:
 - Use label (singular) when filtering by ML labels. Accepts multiple values. Example: label=["Welsh Terrier"].
+- field must be list-of-objects with keys {field, template}. Example: field=[{field: "uuid", template: "{uuid}"}].
 
 Parameters:
 
@@ -847,6 +852,7 @@ Parameters:
 - `add_to_album` (Optional[str]): Add all photos from query to album ALBUM in Photos.
 - `quiet` (bool): Quiet output; doesn't actually print query results.
 - `field` (Optional[List[{field: str, template: str}]]): Output only specified custom fields. Provide as list of objects: [{field: FIELD, template: TEMPLATE}, ...].
+  Example: `[{field: "uuid", template: "{uuid}"}]`.
 - `print_template` (Optional[List[str]]): Render TEMPLATE string for each photo queried and print to stdout.
 - `mute` (bool): Mute status output while loading Photos library.
   
