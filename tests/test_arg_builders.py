@@ -17,23 +17,23 @@ from mcp_osxphotos.server import (  # noqa: E402
 
 
 class TestArgBuilders(unittest.TestCase):
-    def test_pairs_list_of_tuples(self):
+    def test_pairs_object_form_success(self):
         cases = [
-            ("regex", [("a", "{name}"), ("b", "{uuid}")], ["--regex", "a", "{name}", "--regex", "b", "{uuid}"]),
-            ("exif", [("Make", "Apple"), ("Model", "iPhone")], ["--exif", "Make", "Apple", "--exif", "Model", "iPhone"]),
-            ("field", [("uuid", "{uuid}")], ["--field", "uuid", "{uuid}"]),
-            ("xattr_template", [("com.example.attr", "{name}")], ["--xattr-template", "com.example.attr", "{name}"]),
-            ("post_command", [("exported", "echo hi")], ["--post-command", "exported", "echo hi"]),
+            ("regex", [{"pattern": "a", "template": "{name}"}, {"pattern": "b", "template": "{uuid}"}], ["--regex", "a", "{name}", "--regex", "b", "{uuid}"]),
+            ("exif", [{"tag": "Make", "value": "Apple"}, {"tag": "Model", "value": "iPhone"}], ["--exif", "Make", "Apple", "--exif", "Model", "iPhone"]),
+            ("field", [{"field": "uuid", "template": "{uuid}"}], ["--field", "uuid", "{uuid}"]),
+            ("xattr_template", [{"attribute": "com.example.attr", "template": "{name}"}], ["--xattr-template", "com.example.attr", "{name}"]),
+            ("post_command", [{"category": "exported", "command": "echo hi"}], ["--post-command", "exported", "echo hi"]),
         ]
         for name, value, expected in cases:
             cmd: list[str] = []
-            _append_multi_arg_pairs(cmd, name, value)  # type: ignore[arg-type]
+            _append_multi_arg_pairs(cmd, name, value)
             self.assertEqual(cmd, expected, f"failed for {name}")
 
-    def test_pairs_flat_list(self):
-        cmd: list[str] = []
-        _append_multi_arg_pairs(cmd, "regex", ["a", "{name}", "b", "{uuid}"])  # type: ignore[arg-type]
-        self.assertEqual(cmd, ["--regex", "a", "{name}", "--regex", "b", "{uuid}"])
+    def test_pairs_flat_list_raises(self):
+        with self.assertRaises(ValueError) as cm:
+            _append_multi_arg_pairs([], "regex", ["a", "{name}", "b", "{uuid}"])  # type: ignore[arg-type]
+        self.assertIn("object form", str(cm.exception))
 
     def test_pairs_invalid_odd_flat_list_raises(self):
         with self.assertRaises(ValueError):
@@ -43,23 +43,22 @@ class TestArgBuilders(unittest.TestCase):
         with self.assertRaises(ValueError):
             _append_multi_arg_pairs([], "regex", [["a", "b", "c"]])  # type: ignore[arg-type]
 
-    def test_triples_list_of_tuples(self):
+    def test_triples_object_form_success(self):
         cmd: list[str] = []
-        triples = [("tmpl.mako", "{name}.json", "--foo=1"), ("t2.mako", "{uuid}.json", "--bar")] 
-        _append_multi_arg_group(cmd, "sidecar_template", triples, 3)  # type: ignore[arg-type]
+        triples = [
+            {"mako_template": "tmpl.mako", "filename_template": "{name}.json", "options": "--foo=1"},
+            {"mako_template": "t2.mako", "filename_template": "{uuid}.json", "options": "--bar"},
+        ]
+        _append_multi_arg_group(cmd, "sidecar_template", triples, 3)
         self.assertEqual(cmd, [
             "--sidecar-template", "tmpl.mako", "{name}.json", "--foo=1",
             "--sidecar-template", "t2.mako", "{uuid}.json", "--bar",
         ])
 
-    def test_triples_flat_list(self):
-        cmd: list[str] = []
-        flat = ["tmpl.mako", "{name}.json", "--foo=1", "t2.mako", "{uuid}.json", "--bar"]
-        _append_multi_arg_group(cmd, "sidecar_template", flat, 3)  # type: ignore[arg-type]
-        self.assertEqual(cmd, [
-            "--sidecar-template", "tmpl.mako", "{name}.json", "--foo=1",
-            "--sidecar-template", "t2.mako", "{uuid}.json", "--bar",
-        ])
+    def test_triples_flat_list_raises(self):
+        with self.assertRaises(ValueError) as cm:
+            _append_multi_arg_group([], "sidecar_template", ["tmpl.mako", "{name}.json", "--foo=1"], 3)  # type: ignore[arg-type]
+        self.assertIn("object form", str(cm.exception))
 
     def test_triples_invalid_arity_raises(self):
         with self.assertRaises(ValueError):

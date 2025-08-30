@@ -93,94 +93,47 @@ _PAIR_KEY_MAP: Dict[str, List[str]] = {
 }
 
 
-def _append_multi_arg_pairs(cmd: List[str], name: str, value: List[str | List[str] | Dict[str, Any]]) -> None:
-    """Append an option that requires two arguments per occurrence.
+def _append_multi_arg_pairs(cmd: List[str], name: str, value: List[Dict[str, Any]]) -> None:
+    """Append an option that requires two arguments per occurrence using object-form only.
 
-    Accepts either:
-    - flat list with even length: [A, B, C, D] -> --name A B --name C D
-    - list of pairs: [[A, B], [C, D]] -> same as above
+    Accepts: list of dicts with required keys per option name.
+    Example: field=[{"field": "uuid", "template": "{uuid}"}]
     """
     if not value:
         return
-    # If already a list of pairs
-    if isinstance(value, list) and value and isinstance(value[0], (list, tuple)):
-        for pair in value:  # type: ignore[assignment]
-            if len(pair) != 2:  # type: ignore[arg-type]
-                # Tailored guidance for known pair-style options
-                if name == "field":
-                    raise ValueError(
-                        "Option 'field' requires pairs [FIELD, TEMPLATE] or object form "
-                        "[{field: FIELD, template: TEMPLATE}]; got invalid pair length"
-                    )
-                if name == "regex":
-                    raise ValueError(
-                        "Option 'regex' requires pairs [REGEX, TEMPLATE] or object form "
-                        "[{pattern: REGEX, template: TEMPLATE}]; got invalid pair length"
-                    )
-                if name == "exif":
-                    raise ValueError(
-                        "Option 'exif' requires pairs [EXIF_TAG, VALUE] or object form "
-                        "[{tag: EXIF_TAG, value: VALUE}]; got invalid pair length"
-                    )
-                if name == "xattr_template":
-                    raise ValueError(
-                        "Option 'xattr_template' requires pairs [ATTRIBUTE, TEMPLATE] or object form "
-                        "[{attribute: ATTRIBUTE, template: TEMPLATE}]; got invalid pair length"
-                    )
-                if name == "post_command":
-                    raise ValueError(
-                        "Option 'post_command' requires pairs [CATEGORY, COMMAND] or object form "
-                        "[{category: CATEGORY, command: COMMAND}]; got invalid pair length"
-                    )
-                raise ValueError(f"Option '{name}' requires pairs of two arguments, got: {pair}")
-            cmd.extend([_flag(name), str(pair[0]), str(pair[1])])  # type: ignore[index]
-        return
-
-    # If a list of dicts with known keys
-    if isinstance(value, list) and value and isinstance(value[0], dict):
-        keys = _PAIR_KEY_MAP.get(name)
-        if not keys:
-            raise ValueError(f"Option '{name}' does not support object form")
-        for obj in value:  # type: ignore[assignment]
-            missing = [k for k in keys if k not in obj]  # type: ignore[arg-type]
-            if missing:
-                raise ValueError(f"Option '{name}' missing keys: {missing}")
-            cmd.extend([_flag(name), str(obj[keys[0]]), str(obj[keys[1]])])  # type: ignore[index]
-        return
-
-    # Otherwise expect a flat list with even length
-    flat = [str(v) for v in value]  # type: ignore[list-item]
-    if len(flat) % 2 != 0:
+    if not isinstance(value, list) or not isinstance(value[0], dict):
+        # Tailored guidance for known options
         if name == "field":
             raise ValueError(
-                "Option 'field' requires pairs [FIELD, TEMPLATE] or object form "
-                "[{field: FIELD, template: TEMPLATE}]; got odd-length list"
+                "Option 'field' must be provided as list of objects (object form): [{field: FIELD, template: TEMPLATE}]"
             )
         if name == "regex":
             raise ValueError(
-                "Option 'regex' requires pairs [REGEX, TEMPLATE] or object form "
-                "[{pattern: REGEX, template: TEMPLATE}]; got odd-length list"
+                "Option 'regex' must be provided as list of objects (object form): [{pattern: REGEX, template: TEMPLATE}]"
             )
         if name == "exif":
             raise ValueError(
-                "Option 'exif' requires pairs [EXIF_TAG, VALUE] or object form "
-                "[{tag: EXIF_TAG, value: VALUE}]; got odd-length list"
+                "Option 'exif' must be provided as list of objects (object form): [{tag: EXIF_TAG, value: VALUE}]"
             )
         if name == "xattr_template":
             raise ValueError(
-                "Option 'xattr_template' requires pairs [ATTRIBUTE, TEMPLATE] or object form "
-                "[{attribute: ATTRIBUTE, template: TEMPLATE}]; got odd-length list"
+                "Option 'xattr_template' must be provided as list of objects (object form): [{attribute: ATTRIBUTE, template: TEMPLATE}]"
             )
         if name == "post_command":
             raise ValueError(
-                "Option 'post_command' requires pairs [CATEGORY, COMMAND] or object form "
-                "[{category: CATEGORY, command: COMMAND}]; got odd-length list"
+                "Option 'post_command' must be provided as list of objects (object form): [{category: CATEGORY, command: COMMAND}]"
             )
-        raise ValueError(
-            f"Option '{name}' requires an even number of arguments (pairs), got {len(flat)}"
-        )
-    for i in range(0, len(flat), 2):
-        cmd.extend([_flag(name), flat[i], flat[i + 1]])
+        raise ValueError(f"Option '{name}' must be provided as a list of objects (object form) with required keys")
+    keys = _PAIR_KEY_MAP.get(name)
+    if not keys:
+        raise ValueError(f"Option '{name}' does not support object form")
+    for obj in value:
+        if not isinstance(obj, dict):
+            raise ValueError(f"Option '{name}' expects objects; got {type(obj).__name__}")
+        missing = [k for k in keys if k not in obj]
+        if missing:
+            raise ValueError(f"Option '{name}' missing keys: {missing}")
+        cmd.extend([_flag(name), str(obj[keys[0]]), str(obj[keys[1]])])
 
 
 def _append_location_pair(cmd: List[str], name: str, value: Optional[Tuple[float, float] | List[float]]) -> bool:
@@ -197,57 +150,36 @@ def _append_location_pair(cmd: List[str], name: str, value: Optional[Tuple[float
     return True
 
 def _append_multi_arg_group(
-    cmd: List[str], name: str, value: List[str | List[str] | Dict[str, Any]], arity: int
+    cmd: List[str], name: str, value: List[Dict[str, Any]], arity: int
 ) -> None:
-    """Append an option that requires N arguments per occurrence.
+    """Append an option that requires N arguments per occurrence using object-form only.
 
-    Accepts either a flat list whose length is a multiple of arity
-    or a list of lists/tuples where each sub-sequence length == arity.
+    Accepts: list of dicts with required keys.
+    Example (arity=3): sidecar_template=[{mako_template: "t.mako", filename_template: "{name}.json", options: "--foo=1"}]
     """
     if not value:
         return
-    # If already a list of groups
-    if isinstance(value, list) and value and isinstance(value[0], (list, tuple)):
-        for group in value:  # type: ignore[assignment]
-            if len(group) != arity:  # type: ignore[arg-type]
-                if name == "sidecar_template" and arity == 3:
-                    raise ValueError(
-                        "Option 'sidecar_template' requires triples [MAKO_TEMPLATE_FILE, SIDECAR_FILENAME_TEMPLATE, OPTIONS] "
-                        "or object form [{mako_template: MAKO_TEMPLATE_FILE, filename_template: SIDECAR_FILENAME_TEMPLATE, options: OPTIONS}]; "
-                        f"got invalid group length ({len(group)})"
-                    )
-                raise ValueError(
-                    f"Option '{name}' requires groups of {arity} arguments, got: {group}"
-                )
-            cmd.append(_flag(name))
-            cmd.extend([str(v) for v in group])  # type: ignore[list-item]
-        return
-
-    # If a list of dicts with known keys (currently only sidecar_template)
-    if isinstance(value, list) and value and isinstance(value[0], dict):
-        if name != "sidecar_template":
-            raise ValueError(f"Option '{name}' does not support object form")
-        keys = ["mako_template", "filename_template", "options"]
-        for obj in value:  # type: ignore[assignment]
-            missing = [k for k in keys if k not in obj]  # type: ignore[arg-type]
-            if missing:
-                raise ValueError(
-                    "Option 'sidecar_template' object form requires keys {mako_template, filename_template, options}; "
-                    f"missing keys: {missing}"
-                )
-            cmd.append(_flag(name))
-            cmd.extend([str(obj[k]) for k in keys])  # type: ignore[index]
-        return
-
-    # Otherwise expect a flat list with length multiple of arity
-    flat = [str(v) for v in value]  # type: ignore[list-item]
-    if len(flat) % arity != 0:
-        raise ValueError(
-            f"Option '{name}' requires a number of arguments that is a multiple of {arity}, got {len(flat)}"
-        )
-    for i in range(0, len(flat), arity):
+    if not isinstance(value, list) or not isinstance(value[0], dict):
+        if name == "sidecar_template":
+            raise ValueError(
+                "Option 'sidecar_template' must be provided as list of objects (object form): "
+                "[{mako_template: MAKO_TEMPLATE_FILE, filename_template: SIDECAR_FILENAME_TEMPLATE, options: OPTIONS}]"
+            )
+        raise ValueError(f"Option '{name}' must be provided as a list of objects (object form) with required keys (arity={arity})")
+    if name != "sidecar_template":
+        raise ValueError(f"Option '{name}' does not support object form")
+    keys = ["mako_template", "filename_template", "options"]
+    for obj in value:
+        if not isinstance(obj, dict):
+            raise ValueError(f"Option '{name}' expects objects; got {type(obj).__name__}")
+        missing = [k for k in keys if k not in obj]
+        if missing:
+            raise ValueError(
+                "Option 'sidecar_template' object form requires keys {mako_template, filename_template, options}; "
+                f"missing keys: {missing}"
+            )
         cmd.append(_flag(name))
-        cmd.extend(flat[i : i + arity])
+        cmd.extend([str(obj[k]) for k in keys])
 
 @mcp.tool()
 def osxphotos_health() -> str:
@@ -371,9 +303,9 @@ def add_locations(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template"]] = None,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template. Example: [{pattern: 'a.*', template: '{name}'}]"]] = None,
     selected: bool = False,
-    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value"]] = None,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value. Example: [{tag: 'Make', value: 'Apple'}]"]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
@@ -648,9 +580,9 @@ def export_photos(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template"]] = None,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template. Example: [{pattern: 'a.*', template: '{name}'}]"]] = None,
     selected: bool = False,
-    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value"]] = None,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value. Example: [{tag: 'Make', value: 'Apple'}]"]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     deleted_only: bool = False,
@@ -685,7 +617,7 @@ def export_photos(
     export_aae: bool = False,
     sidecar: Optional[Literal['xmp', 'json', 'exiftool']] = None,
     sidecar_drop_ext: bool = False,
-    sidecar_template: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: mako_template, filename_template, options"]] = None,
+    sidecar_template: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: mako_template, filename_template, options. Example: [{mako_template: 't.mako', filename_template: '{name}.json', options: '--foo=1'}]"]] = None,
     exiftool_flag: bool = False,
     exiftool_path: Optional[str] = None,
     exiftool_option: Optional[List[str]] = None,
@@ -700,7 +632,7 @@ def export_photos(
     description_template: Optional[str] = None,
     finder_tag_template: Optional[List[str]] = None,
     finder_tag_keywords: bool = False,
-    xattr_template: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: attribute, template"]] = None,
+    xattr_template: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: attribute, template. Example: [{attribute: 'com.example', template: '{name}'}]"]] = None,
     directory: Optional[str] = None,
     filename: Optional[str] = None,
     jpeg_ext: Optional[str] = None,
@@ -716,7 +648,7 @@ def export_photos(
     add_exported_to_album: Optional[str] = None,
     add_skipped_to_album: Optional[str] = None,
     add_missing_to_album: Optional[str] = None,
-    post_command: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: category, command"]] = None,
+    post_command: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: category, command. Example: [{category: 'exported', command: 'echo hi'}]"]] = None,
     post_command_error: Optional[Literal['continue', 'break']] = None,
     post_function: Optional[List[str]] = None,
     exportdb: Optional[str] = None,
@@ -1118,9 +1050,9 @@ def push_exif(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template"]] = None,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template. Example: [{pattern: 'a.*', template: '{name}'}]"]] = None,
     selected: bool = False,
-    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value"]] = None,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value. Example: [{tag: 'Make', value: 'Apple'}]"]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
 ) -> str:
@@ -1240,16 +1172,16 @@ def query_photos(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template"]] = None,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template. Example: [{pattern: 'a.*', template: '{name}'}]"]] = None,
     selected: bool = False,
-    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value"]] = None,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value. Example: [{tag: 'Make', value: 'Apple'}]"]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     deleted_only: bool = False,
     deleted: bool = False,
     add_to_album: Optional[str] = None,
     quiet: bool = False,
-        field: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: field, template"]] = None,
+        field: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: field, template. Example: [{field: 'uuid', template: '{uuid}'}]"]] = None,
     print_template: Optional[List[str]] = None,
     mute: bool = False,
 ) -> str:
@@ -1382,9 +1314,9 @@ def sync(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template"]] = None,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template. Example: [{pattern: 'a.*', template: '{name}'}]"]] = None,
     selected: bool = False,
-    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value"]] = None,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value. Example: [{tag: 'Make', value: 'Apple'}]"]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     library: Optional[str] = None,
