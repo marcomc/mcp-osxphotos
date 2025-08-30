@@ -2,11 +2,12 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "pytest -q",
+			"label": "unittest: discover",
 			"type": "shell",
-			"command": "pytest -q",
+			"command": "./.venv/bin/python -m unittest discover -s tests -p 'test*.py' -q",
 			"isBackground": false,
-			"group": "build"
+			"group": "build",
+			"problemMatcher": []
 		}
 	]
 }

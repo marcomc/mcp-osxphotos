@@ -3,7 +3,7 @@ import sys
 import shutil
 import subprocess
 import json
-from typing import List, Optional, Literal, Tuple
+from typing import List, Optional, Literal, Tuple, TypedDict, Dict, Any
 
 # Make python-dotenv optional so missing dev deps don't crash discovery in GUI clients
 try:
@@ -70,7 +70,48 @@ def _flag(name: str) -> str:
     return f"--{name.replace('_', '-')}"
 
 
-def _append_multi_arg_pairs(cmd: List[str], name: str, value: List[str | List[str]]) -> None:
+class RegexPair(TypedDict):
+    pattern: str
+    template: str
+
+
+class ExifPair(TypedDict):
+    tag: str
+    value: str
+
+
+class FieldPair(TypedDict):
+    field: str
+    template: str
+
+
+class XattrTemplatePair(TypedDict):
+    attribute: str
+    template: str
+
+
+class PostCommandPair(TypedDict):
+    category: str
+    command: str
+
+
+class SidecarTemplateTriple(TypedDict):
+    mako_template: str
+    filename_template: str
+    options: str
+
+
+# Map option names to expected dict keys (order matters)
+_PAIR_KEY_MAP: Dict[str, List[str]] = {
+    "regex": ["pattern", "template"],
+    "exif": ["tag", "value"],
+    "field": ["field", "template"],
+    "xattr_template": ["attribute", "template"],
+    "post_command": ["category", "command"],
+}
+
+
+def _append_multi_arg_pairs(cmd: List[str], name: str, value: List[str | List[str] | Dict[str, Any]]) -> None:
     """Append an option that requires two arguments per occurrence.
 
     Accepts either:
@@ -85,6 +126,18 @@ def _append_multi_arg_pairs(cmd: List[str], name: str, value: List[str | List[st
             if len(pair) != 2:  # type: ignore[arg-type]
                 raise ValueError(f"Option '{name}' requires pairs of two arguments, got: {pair}")
             cmd.extend([_flag(name), str(pair[0]), str(pair[1])])  # type: ignore[index]
+        return
+
+    # If a list of dicts with known keys
+    if isinstance(value, list) and value and isinstance(value[0], dict):
+        keys = _PAIR_KEY_MAP.get(name)
+        if not keys:
+            raise ValueError(f"Option '{name}' does not support object form")
+        for obj in value:  # type: ignore[assignment]
+            missing = [k for k in keys if k not in obj]  # type: ignore[arg-type]
+            if missing:
+                raise ValueError(f"Option '{name}' missing keys: {missing}")
+            cmd.extend([_flag(name), str(obj[keys[0]]), str(obj[keys[1]])])  # type: ignore[index]
         return
 
     # Otherwise expect a flat list with even length
@@ -109,7 +162,7 @@ def _append_location_pair(cmd: List[str], name: str, value: Optional[Tuple[float
     return True
 
 def _append_multi_arg_group(
-    cmd: List[str], name: str, value: List[str | List[str]], arity: int
+    cmd: List[str], name: str, value: List[str | List[str] | Dict[str, Any]], arity: int
 ) -> None:
     """Append an option that requires N arguments per occurrence.
 
@@ -127,6 +180,19 @@ def _append_multi_arg_group(
                 )
             cmd.append(_flag(name))
             cmd.extend([str(v) for v in group])  # type: ignore[list-item]
+        return
+
+    # If a list of dicts with known keys (currently only sidecar_template)
+    if isinstance(value, list) and value and isinstance(value[0], dict):
+        if name != "sidecar_template":
+            raise ValueError(f"Option '{name}' does not support object form")
+        keys = ["mako_template", "filename_template", "options"]
+        for obj in value:  # type: ignore[assignment]
+            missing = [k for k in keys if k not in obj]  # type: ignore[arg-type]
+            if missing:
+                raise ValueError(f"Option '{name}' missing keys: {missing}")
+            cmd.append(_flag(name))
+            cmd.extend([str(obj[k]) for k in keys])  # type: ignore[index]
         return
 
     # Otherwise expect a flat list with length multiple of arity
@@ -261,9 +327,9 @@ def add_locations(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[Tuple[str, str]]] = None,
+    regex: Optional[List[RegexPair]] = None,
     selected: bool = False,
-    exif: Optional[List[Tuple[str, str]]] = None,
+    exif: Optional[List[ExifPair]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
@@ -370,7 +436,7 @@ def dump(
     json: bool = False,
     deleted_only: bool = False,
     deleted: bool = False,
-    field: Optional[List[Tuple[str, str]]] = None,
+    field: Optional[List[FieldPair]] = None,
     print_template: Optional[List[str]] = None,
 ) -> str:
     """DEPRECATED: Print list of all photos & associated info from the Photos library. Use query instead."""
@@ -523,9 +589,9 @@ def export_photos(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[Tuple[str, str]]] = None,
+    regex: Optional[List[RegexPair]] = None,
     selected: bool = False,
-    exif: Optional[List[Tuple[str, str]]] = None,
+    exif: Optional[List[ExifPair]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     deleted_only: bool = False,
@@ -560,7 +626,7 @@ def export_photos(
     export_aae: bool = False,
     sidecar: Optional[Literal['xmp', 'json', 'exiftool']] = None,
     sidecar_drop_ext: bool = False,
-    sidecar_template: Optional[List[Tuple[str, str, str]]] = None,
+    sidecar_template: Optional[List[SidecarTemplateTriple]] = None,
     exiftool_flag: bool = False,
     exiftool_path: Optional[str] = None,
     exiftool_option: Optional[List[str]] = None,
@@ -575,7 +641,7 @@ def export_photos(
     description_template: Optional[str] = None,
     finder_tag_template: Optional[List[str]] = None,
     finder_tag_keywords: bool = False,
-    xattr_template: Optional[List[Tuple[str, str]]] = None,
+    xattr_template: Optional[List[XattrTemplatePair]] = None,
     directory: Optional[str] = None,
     filename: Optional[str] = None,
     jpeg_ext: Optional[str] = None,
@@ -591,7 +657,7 @@ def export_photos(
     add_exported_to_album: Optional[str] = None,
     add_skipped_to_album: Optional[str] = None,
     add_missing_to_album: Optional[str] = None,
-    post_command: Optional[List[Tuple[str, str]]] = None,
+    post_command: Optional[List[PostCommandPair]] = None,
     post_command_error: Optional[Literal['continue', 'break']] = None,
     post_function: Optional[List[str]] = None,
     exportdb: Optional[str] = None,
@@ -982,9 +1048,9 @@ def push_exif(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[Tuple[str, str]]] = None,
+    regex: Optional[List[RegexPair]] = None,
     selected: bool = False,
-    exif: Optional[List[Tuple[str, str]]] = None,
+    exif: Optional[List[ExifPair]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
 ) -> str:
@@ -1096,16 +1162,16 @@ def query_photos(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[Tuple[str, str]]] = None,
+    regex: Optional[List[RegexPair]] = None,
     selected: bool = False,
-    exif: Optional[List[Tuple[str, str]]] = None,
+    exif: Optional[List[ExifPair]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     deleted_only: bool = False,
     deleted: bool = False,
     add_to_album: Optional[str] = None,
     quiet: bool = False,
-    field: Optional[List[Tuple[str, str]]] = None,
+    field: Optional[List[FieldPair]] = None,
     print_template: Optional[List[str]] = None,
     mute: bool = False,
 ) -> str:
@@ -1240,9 +1306,9 @@ def sync(
     not_shared_moment: bool = False,
     shared_library: bool = False,
     not_shared_library: bool = False,
-    regex: Optional[List[Tuple[str, str]]] = None,
+    regex: Optional[List[RegexPair]] = None,
     selected: bool = False,
-    exif: Optional[List[Tuple[str, str]]] = None,
+    exif: Optional[List[ExifPair]] = None,
     query_eval: Optional[List[str]] = None,
     query_function: Optional[List[str]] = None,
     library: Optional[str] = None,

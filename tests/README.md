@@ -21,12 +21,20 @@ This directory contains the unit and smoke tests for the mcp-osxphotos project.
   - Basic sanity for the MCP runtime and environment discovery
     (no `osxphotos` invocation required)
 
+- Schema shape tests (`test_schema_shapes.py`)
+  - Guard against tuple-based annotations that could produce JSON Schema
+    `prefixItems` (e.g., List[Tuple[...]]). Ensures multi-arg params use
+    list-of-objects (TypedDict) in tool signatures.
+  - Verifies helpers accept object-form inputs for pairs and triples.
+
 ## How to run tests
 
 We use Python's built-in `unittest` to avoid external dependencies.
 
-- If your editor integrates a Python environment, use it to run the discovery command.
-- From a terminal (fish shell), you can run:
+- Recommended options:
+  - VS Code: Run the task "unittest: discover" from the Command Palette.
+  - Makefile: `make test`
+  - Direct (fish shell): run the command below.
 
 ```fish
 # Run all tests discovered under tests/
