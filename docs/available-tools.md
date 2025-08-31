@@ -1,4 +1,31 @@
+
 # Available Tools
+
+## Common shapes (copy/paste)
+
+```json
+{
+  "regex": [
+    {"pattern": "a.*", "template": "{name}"}
+  ],
+  "exif": [
+    {"tag": "Make", "value": "Apple"}
+  ],
+  "field": [
+    {"field": "uuid", "template": "{uuid}"}
+  ],
+  "xattr_template": [
+    {"attribute": "com.example", "template": "{name}"}
+  ],
+  "post_command": [
+    {"category": "exported", "command": "echo hi"}
+  ],
+  "sidecar_template": [
+    {"mako_template": "t.mako", "filename_template": "{name}.json", "options": "--foo=1"}
+  ]
+}
+```
+
 
 <!-- markdownlint-disable MD013 MD004 MD007 MD029 MD030 MD032 -->
 
