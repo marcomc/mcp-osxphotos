@@ -1,3 +1,4 @@
+# batch_edit_by_uuid definition moved below MCP initialization
 import os
 import sys
 import shutil
@@ -182,6 +183,152 @@ def _append_multi_arg_group(
         cmd.extend([str(obj[k]) for k in keys])
 
 @mcp.tool()
+def batch_edit_by_uuid(
+    uuid: List[str],
+    metadata: str = "all",
+    push_edited: bool = True,
+    exiftool_path: Optional[str] = None,
+    exiftool_option: Optional[List[str]] = None,
+    exiftool_merge_keywords: bool = False,
+    exiftool_merge_persons: bool = False,
+    favorite_rating: bool = False,
+    ignore_date_modified: bool = False,
+    person_keyword: bool = False,
+    album_keyword: bool = False,
+    keyword_template: Optional[List[str]] = None,
+    replace_keywords: bool = False,
+    description_template: Optional[str] = None,
+    report: Optional[str] = None,
+    append: bool = False,
+    compare: bool = False,
+    dry_run: bool = False,
+    verbose: bool = False,
+    timestamp: bool = False,
+    theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
+    library: Optional[str] = None,
+    keyword: Optional[List[str]] = None,
+    no_keyword: bool = False,
+    person: Optional[List[str]] = None,
+    album: Optional[List[str]] = None,
+    folder: Optional[List[str]] = None,
+    name: Optional[List[str]] = None,
+    uuid_from_file: Optional[str] = None,
+    title: Optional[str] = None,
+    no_title: bool = False,
+    description: Optional[str] = None,
+    no_description: bool = False,
+    place: Optional[str] = None,
+    no_place: bool = False,
+    location: bool = False,
+    no_location: bool = False,
+    label: Optional[List[str]] = None,
+    uti: Optional[str] = None,
+    ignore_case: bool = False,
+    edited: bool = False,
+    not_edited: bool = False,
+    external_edit: bool = False,
+    favorite: bool = False,
+    not_favorite: bool = False,
+    hidden: bool = False,
+    not_hidden: bool = False,
+    shared: bool = False,
+    not_shared: bool = False,
+    burst: bool = False,
+    not_burst: bool = False,
+    live: bool = False,
+    not_live: bool = False,
+    portrait: bool = False,
+    not_portrait: bool = False,
+    screenshot: bool = False,
+    not_screenshot: bool = False,
+    screen_recording: bool = False,
+    not_screen_recording: bool = False,
+    slow_mo: bool = False,
+    not_slow_mo: bool = False,
+    time_lapse: bool = False,
+    not_time_lapse: bool = False,
+    hdr: bool = False,
+    not_hdr: bool = False,
+    selfie: bool = False,
+    not_selfie: bool = False,
+    panorama: bool = False,
+    not_panorama: bool = False,
+    has_raw: bool = False,
+    only_movies: bool = False,
+    only_photos: bool = False,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    from_time: Optional[str] = None,
+    to_time: Optional[str] = None,
+    year: Optional[List[int]] = None,
+    added_before: Optional[str] = None,
+    added_after: Optional[str] = None,
+    added_in_last: Optional[str] = None,
+    has_comment: bool = False,
+    no_comment: bool = False,
+    has_likes: bool = False,
+    no_likes: bool = False,
+    is_reference: bool = False,
+    not_reference: bool = False,
+    in_album: bool = False,
+    not_in_album: bool = False,
+    duplicate: bool = False,
+    min_size: Optional[str] = None,
+    max_size: Optional[str] = None,
+    missing: bool = False,
+    not_missing: bool = False,
+    cloudasset: bool = False,
+    not_cloudasset: bool = False,
+    incloud: bool = False,
+    not_incloud: bool = False,
+    syndicated: bool = False,
+    not_syndicated: bool = False,
+    saved_to_library: bool = False,
+    not_saved_to_library: bool = False,
+    shared_moment: bool = False,
+    not_shared_moment: bool = False,
+    shared_library: bool = False,
+    not_shared_library: bool = False,
+    regex: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: pattern, template. Example: [{pattern: 'a.*', template: '{name}'}]"]] = None,
+    selected: bool = False,
+    exif: Optional[Annotated[List[Dict[str, str]], "Each item must include keys: tag, value. Example: [{tag: 'Make', value: 'Apple'}]"]] = None,
+    query_eval: Optional[List[str]] = None,
+    query_function: Optional[List[str]] = None,
+) -> str:
+    """
+    Simulate batch_edit by applying metadata edits to each photo UUID using push-exif.
+
+    This invokes `osxphotos push-exif <metadata> --push-edited --uuid <UUID>` for each UUID provided,
+    adding any supplied push-exif filtering and metadata options.
+
+    Notes:
+    - Strong typing for multi-arg options: provide `regex` and `exif` as list-of-objects only.
+      - regex: [{pattern: REGEX, template: TEMPLATE}]
+      - exif:  [{tag: EXIF_TAG, value: VALUE}]
+    - Intended as a workaround for Photos selection-only batch-edit.
+    """
+    results = []
+    for u in uuid:
+        cmd = ["osxphotos", "push-exif", metadata, "--push-edited", "--uuid", u]
+        # Build flags from function parameters (excluding locals we shouldn't process)
+        for key, value in locals().items():
+            if key in {"cmd", "uuid", "u", "results"}:
+                continue
+            if value:
+                if key in {"regex", "exif"}:
+                    _append_multi_arg_pairs(cmd, key, value)  # type: ignore[arg-type]
+                elif isinstance(value, bool):
+                    cmd.append(_flag(key))
+                elif isinstance(value, list):
+                    for item in value:
+                        cmd.extend([_flag(key), str(item)])
+                else:
+                    cmd.extend([_flag(key), str(value)])
+        result = run_osxphotos_command(cmd)
+        results.append({"uuid": u, "result": result})
+    return json.dumps(results, indent=2)
+
+@mcp.tool()
 def osxphotos_health() -> str:
     """Return diagnostic info about how the server finds and runs osxphotos."""
     info = {"found": False}
@@ -361,8 +508,13 @@ def batch_edit(
     timestamp: bool = False,
     theme: Optional[Literal['dark', 'light', 'mono', 'plain']] = None,
     library: Optional[str] = None,
+    uuid: Optional[List[str]] = None,
+    uuid_from_file: Optional[str] = None,
 ) -> str:
-    """Batch edit photo metadata such as title, description, keywords, etc."""
+    """Batch edit photo metadata such as title, description, keywords, etc.
+
+    Now supports uuid and uuid_from_file to operate on arbitrary photos, not just the selection.
+    """
     cmd = ["osxphotos", "batch-edit"]
     for key, value in locals().items():
         if key == "cmd":
@@ -372,6 +524,13 @@ def batch_edit(
                 handled = _append_location_pair(cmd, key, value)  # type: ignore[arg-type]
                 if handled:
                     continue
+            if key == "uuid":
+                for item in value:
+                    cmd.extend(["--uuid", str(item)])
+                continue
+            if key == "uuid_from_file":
+                cmd.extend(["--uuid-from-file", str(value)])
+                continue
             if isinstance(value, bool):
                 cmd.append(_flag(key))
             elif isinstance(value, list):

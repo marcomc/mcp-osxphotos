@@ -1,5 +1,39 @@
 
+
 # Available Tools
+
+## Example: Tag all photos with a label
+
+To add a keyword (e.g., "animal") to all photos with a given label (e.g., "Mammal"):
+
+1. **Query for UUIDs by label:**
+
+   Call `query_photos` with:
+   ```json
+   {
+     "label": ["Mammal"],
+     "json": true,
+     "field": [
+       {"field": "uuid", "template": "{uuid}"}
+     ]
+   }
+   ```
+   This returns a JSON list of UUIDs.
+
+2. **Apply keyword by UUIDs:**
+
+   Prefer `batch_edit_by_uuid` (works without Photos selection) and set `dry_run` to true first:
+   ```json
+   {
+     "uuid": ["UUID1", "UUID2", "UUID3"],
+     "metadata": "all",
+     "keyword": ["animal"],
+     "dry_run": true
+   }
+   ```
+
+This adds the keyword to all matching photos by invoking push-exif for each UUID. Remove `dry_run` or set it to `false` to make changes permanent.
+
 
 ## Common shapes (copy/paste)
 
@@ -217,6 +251,29 @@ Parameters:
 - `timestamp` (bool): Add time stamp to verbose output.
 - `theme` (Optional[Literal['dark', 'light', 'mono', 'plain']]): Specify the color theme to use for output.
 - `library` (Optional[str]): Specify Photos library path.
+
+Note: This command only operates on the current Photos selection. To target arbitrary photos by UUIDs, use `batch_edit_by_uuid`.
+
+## `batch_edit_by_uuid`
+
+Simulate batch editing by applying metadata edits to each photo UUID using push-exif. Works without Photos selection.
+
+Invokes, for each UUID, `osxphotos push-exif <metadata> --push-edited --uuid <UUID>` with supported filters and metadata options.
+
+Parameters (subset of push-exif shown):
+
+- `uuid` (List[str], required): UUIDs of photos to edit.
+- `metadata` (str): Metadata group to apply (e.g., "all", "keywords", "location", etc.). Defaults to "all".
+- `dry_run` (bool): Don't actually change anything; print what would be done.
+- `keyword` (Optional[List[str]]): Add keywords to photo (applies when metadata includes keywords).
+- `replace_keywords` (bool): Replace existing keywords.
+- `label` (Optional[List[str]]): Filter for ML labels when selecting which UUIDs to act on.
+- `regex` (Optional[List[{pattern, template}]]) and `exif` (Optional[List[{tag, value}]]) use object-form lists.
+- Other push-exif options are supported and map to their corresponding CLI flags.
+
+Notes:
+- Strong typing for multi-arg options (object-form lists). See Common shapes above.
+- Returns a JSON array of objects: [{"uuid": "...", "result": "..."}].
 
 ## `compare`
 
